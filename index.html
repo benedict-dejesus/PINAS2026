@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b16" />
+  <title>Pilipinas 2026 — The Year in News, Mapped</title>
+  <meta name="description" content="An interactive map of the Philippines where the landmarks are verified, trending 2026 news stories." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇵🇭</text></svg>" />
+</head>
+<body>
+  <div id="map" aria-label="Map of the Philippines with news markers"></div>
+
+  <!-- Floating header -->
+  <header class="app-header" id="appHeader">
+    <div class="brand">
+      <svg class="brand-sun" viewBox="0 0 40 40" aria-hidden="true">
+        <g fill="currentColor">
+          <circle cx="20" cy="20" r="7" />
+          <g id="rays">
+            <path d="M20 1 L22.2 11.5 L17.8 11.5 Z" />
+          </g>
+        </g>
+        <use href="#rays" transform="rotate(45 20 20)" />
+        <use href="#rays" transform="rotate(90 20 20)" />
+        <use href="#rays" transform="rotate(135 20 20)" />
+        <use href="#rays" transform="rotate(180 20 20)" />
+        <use href="#rays" transform="rotate(225 20 20)" />
+        <use href="#rays" transform="rotate(270 20 20)" />
+        <use href="#rays" transform="rotate(315 20 20)" />
+      </svg>
+      <div class="brand-text">
+        <h1>PILIPINAS <span>2026</span></h1>
+        <p>The year in news, mapped</p>
+      </div>
+      <button class="about-btn" id="aboutBtn" aria-label="About this map">ⓘ</button>
+    </div>
+    <nav class="filters" id="filters" aria-label="Filter news by category"></nav>
+  </header>
+
+  <!-- Story sheet (bottom sheet on mobile, side panel on desktop) -->
+  <section class="sheet" id="sheet" aria-live="polite">
+    <div class="sheet-handle" id="sheetHandle"><span></span></div>
+    <button class="sheet-close" id="sheetClose" aria-label="Close">✕</button>
+    <div class="sheet-scroll" id="sheetContent"></div>
+  </section>
+
+  <!-- About modal -->
+  <div class="modal-backdrop" id="aboutModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <button class="modal-close" id="aboutClose" aria-label="Close">✕</button>
+      <h2 id="aboutTitle">About this map</h2>
+      <p><strong>Pilipinas 2026</strong> replaces place labels with the stories that made them matter. Each glowing
+        marker is a verified news event from 2026 — tap one to read a summary and jump to the original reporting.</p>
+      <h3>Verification</h3>
+      <p>Every story was checked against the reputable outlets linked inside it (Philippine dailies, wire services,
+        official bodies like the ICC and PHIVOLCS-adjacent monitors, and press-freedom organizations). Nothing on this
+        map is unsourced; dates reflect the events as reported. Data snapshot: <strong>July 22, 2026</strong>.</p>
+      <h3>Photos</h3>
+      <p>Marker photos are representative images of the place or subject, loaded live from Wikipedia/Wikimedia.
+        For news photography, follow the source links to the original articles.</p>
+      <p class="modal-foot">Built with Leaflet · Basemap © OpenStreetMap contributors, © CARTO</p>
+    </div>
+  </div>
+
+  <div class="intro-veil" id="introVeil">
+    <div class="intro-mark">
+      <div class="intro-sun"></div>
+      <p>PILIPINAS 2026</p>
+      <small>Plotting verified stories…</small>
+    </div>
+  </div>
+
+  <script>
+    // Failsafe registered before anything that can throw: the intro veil must
+    // never be able to trap the user, even if a later script fails to load.
+    window.__veilTimer = setTimeout(function () {
+      var veil = document.getElementById("introVeil");
+      if (veil && !veil.classList.contains("gone")) veil.classList.add("gone");
+    }, 4000);
+    window.__appFatal = function (message) {
+      var mark = document.querySelector(".intro-mark small");
+      var veil = document.getElementById("introVeil");
+      if (mark) mark.textContent = message;
+      if (veil) {
+        veil.classList.remove("gone");
+        veil.classList.add("error");
+        veil.addEventListener("click", function () { veil.classList.add("gone"); });
+      }
+    };
+  </script>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="js/news-data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
