@@ -40,6 +40,17 @@ const PLACES = {
   picc:        { name: "PICC", area: "CCP Complex, Pasay City", lat: 14.5520, lng: 120.9800 },
 };
 
+/**
+ * Optional per-story image override (used instead of the wiki lead image).
+ * Official PCO photo, public domain, hosted on Wikimedia Commons:
+ * President Marcos chairs a Special Cabinet Meeting at the Palace, 2026-03-03.
+ */
+const MALACANANG_IMG = {
+  src: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/2026-03-03_BBM_Meeting.jpg/960px-2026-03-03_BBM_Meeting.jpg",
+  page: "https://commons.wikimedia.org/wiki/File:2026-03-03_BBM_Meeting.jpg",
+  credit: "Photo: PCO via Wikimedia Commons",
+};
+
 const NEWS_DATA = [
   // ————— Malacañang cluster —————
   {
@@ -51,6 +62,7 @@ const NEWS_DATA = [
     summary:
       "President Ferdinand Marcos Jr. received newly appointed US Ambassador to the Philippines Lee Lipton — joined by US Ambassador to India Sergio Gor — at Malacañang, reaffirming the two nations' century-old alliance. US Secretary of State Marco Rubio was also expected in Manila for the 59th ASEAN Foreign Ministers' Meeting.",
     wiki: "Malacañang Palace",
+    image: MALACANANG_IMG,
     sources: [
       { outlet: "The Manila Times", url: "https://www.manilatimes.net/2026/07/20/news/president-marcos-meets-us-envoys-to-india-and-ph-reaffirms-century-old-alliance/2387598" },
     ],
@@ -64,6 +76,7 @@ const NEWS_DATA = [
     summary:
       "Amid a politically charged July in Manila, President Marcos welcomed former British Prime Minister Tony Blair to Malacañang Palace — the fifth meeting between the two, drawing fresh attention to the Blair Institute's advisory work with the administration.",
     wiki: "Malacañang Palace",
+    image: MALACANANG_IMG,
     sources: [
       { outlet: "Rappler", url: "https://www.rappler.com/newsbreak/inside-track/marcos-jr-meeting-tony-blair-july-2026/" },
     ],
@@ -77,6 +90,7 @@ const NEWS_DATA = [
     summary:
       "President Marcos departed for a July 14–16 working visit to Singapore, calling on Prime Minister Lawrence Wong to expand cooperation in trade and investment, environment and health, and to compare notes on regional and global developments.",
     wiki: "Malacañang Palace",
+    image: MALACANANG_IMG,
     sources: [
       { outlet: "GMA News", url: "https://www.gmanetwork.com/news//topstories/nation/994707/marcos-to-visit-singapore-from-july-14-16-2026/story/" },
       { outlet: "The Manila Times", url: "https://www.manilatimes.net/2026/07/13/news/marcos-to-leave-for-2-day-working-visit-in-singapore/2383135" },
@@ -91,6 +105,7 @@ const NEWS_DATA = [
     summary:
       "Malacañang said President Marcos remains focused on his mandate regardless of survey results, after a new poll showed an improvement in his satisfaction rating following months of political turbulence.",
     wiki: "Malacañang Palace",
+    image: MALACANANG_IMG,
     sources: [
       { outlet: "Philstar.com", url: "https://www.philstar.com/nation/2026/07/16/2542496/palace-marcos-jr-focused-work" },
     ],

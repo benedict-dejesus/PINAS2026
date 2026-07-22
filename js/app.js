@@ -131,7 +131,11 @@
       });
       const marker = L.marker(latlng, { icon }).on("click", () => {
         const bounds = L.latLngBounds(memberIds.map((id) => [PLACES[id].lat, PLACES[id].lng]));
-        map.flyToBounds(bounds, { padding: [70, 70], maxZoom: 14, duration: 0.8 });
+        // Always make zoom progress: fitting the bounds alone can stall on
+        // small screens when members are only a few hundred meters apart.
+        const fitZoom = map.getBoundsZoom(bounds, false, L.point(70, 70));
+        const target = Math.min(Math.max(fitZoom, map.getZoom() + 1.75), 16);
+        map.flyTo(bounds.getCenter(), target, { duration: 0.8 });
       });
       if (hasHover) {
         marker.bindTooltip(
@@ -351,8 +355,11 @@
         renderPlaceList(opts.backTo, visibleStories(opts.backTo))
       );
 
-      // Lazy-load a representative photo from Wikipedia
-      wikiImage(story.wiki).then((img) => {
+      // Hand-picked story image if provided, otherwise the wiki lead photo
+      const imageSource = story.image
+        ? Promise.resolve(story.image)
+        : wikiImage(story.wiki);
+      imageSource.then((img) => {
         const hero = document.getElementById(heroId);
         if (!hero) return;
         if (!img) { hero.classList.remove("loading"); return; }
@@ -368,7 +375,7 @@
             credit.href = img.page;
             credit.target = "_blank";
             credit.rel = "noopener noreferrer";
-            credit.textContent = "Photo via Wikipedia";
+            credit.textContent = img.credit || "Photo via Wikipedia";
             hero.appendChild(credit);
           }
         };
