@@ -1,4 +1,4 @@
-/* PILIPINAS 2026 — app logic */
+/* PINAS 2026 — app logic */
 (() => {
   "use strict";
 

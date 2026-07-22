@@ -1,5 +1,5 @@
 /**
- * PILIPINAS 2026 — verified news dataset.
+ * PINAS 2026 — verified news dataset.
  *
  * Every story was verified against the linked sources (retrieved 2026-07-22).
  * `wiki` is an English Wikipedia article title used only to fetch a
@@ -38,6 +38,8 @@ const PLACES = {
   iloilo:      { name: "Iloilo City", area: "Western Visayas", lat: 10.7202, lng: 122.5621 },
   philsa:      { name: "PhilSA / UP Diliman", area: "Quezon City", lat: 14.6537, lng: 121.0687 },
   picc:        { name: "PICC", area: "CCP Complex, Pasay City", lat: 14.5520, lng: 120.9800 },
+  subic:       { name: "Subic", area: "Zambales", lat: 14.8790, lng: 120.2320 },
+  newclark:    { name: "New Clark City", area: "Capas, Tarlac", lat: 15.3220, lng: 120.5510 },
 };
 
 /**
@@ -116,14 +118,14 @@ const NEWS_DATA = [
     id: "sara-trial",
     place: "senate",
     category: "justice",
-    date: "2026-07-15",
-    title: "Sara Duterte impeachment trial: senators weigh subpoena of bank records",
+    date: "2026-07-20",
+    title: "Impeachment court orders subpoena of Sara Duterte's bank records",
     summary:
-      "The historic impeachment trial of Vice President Sara Duterte opened on July 6 at the Senate impeachment court. By Day 6, arguments centered on subpoenaing her bank records, tax returns, and AMLC documents over alleged unexplained wealth — with AMLC having flagged ₱6.7 billion in covered and suspicious transactions against ₱80 million in declared wealth.",
+      "The historic impeachment trial of Vice President Sara Duterte opened on July 6 at the Senate impeachment court. On July 20, senator-judges granted the House prosecution's request to subpoena her bank records, tax documents, and AMLC records over alleged unexplained wealth — after the AMLC flagged ₱6.7 billion in covered and suspicious transactions against ₱80 million in declared wealth.",
     wiki: "Sara Duterte",
     sources: [
       { outlet: "Al Jazeera", url: "https://www.aljazeera.com/news/2026/7/6/impeachment-trial-of-philippine-vice-president-sara-duterte-begins" },
-      { outlet: "GMA News", url: "https://www.gmanetwork.com/news/topstories/specialreports/993688/sara-duterte-impeachment-trial-latest-news-timeline-what-you-need-to-know/story/" },
+      { outlet: "GMA News", url: "https://www.gmanetwork.com/news/topstories/nation/995444/live-updates-sara-duterte-impeachment-trial-july-20-2026/story/" },
       { outlet: "Inquirer.net", url: "https://newsinfo.inquirer.net/2264615/highlights-day-6-of-sara-duterte-impeachment-trial-july-15-2026" },
     ],
   },
@@ -438,6 +440,42 @@ const NEWS_DATA = [
     wiki: "Philippine International Convention Center",
     sources: [
       { outlet: "The Manila Times", url: "https://www.manilatimes.net/2026/07/20/news/president-marcos-meets-us-envoys-to-india-and-ph-reaffirms-century-old-alliance/2387598" },
+    ],
+  },
+
+  // ————— Zambales: Aeta ancestral domain dumpsite —————
+  {
+    id: "aeta-dumpsite",
+    place: "subic",
+    category: "justice",
+    date: "2026-07-16",
+    title: "DENR shuts dumpsite on Aeta ancestral land in Subic; Senate to probe",
+    summary:
+      "After a documentary exposed how part of a mountain in Sitio Tibag, Barangay Naugsol was turned into an LGU-run open dump since 2019 — contaminating water sources in an Aeta ancestral domain — the DENR issued a cease-and-desist order and declared the site closed on July 16. The Senate is set to investigate, Aeta residents are seeking accountability, and the municipality has begun cleanup.",
+    wiki: "Subic, Zambales",
+    sources: [
+      { outlet: "GMA News", url: "https://www.gmanetwork.com/news/topstories/regions/994978/denr-halts-dumpsite-operations-in-aeta-ancestral-land-in-zambales/story/" },
+      { outlet: "Inquirer.net", url: "https://newsinfo.inquirer.net/2263805/subic-aetas-seek-accountability-over-open-dump-in-ancestral-domain" },
+      { outlet: "Philstar.com", url: "https://www.philstar.com/nation/2026/07/17/2542637/waste-facility-subic-aeta-community-closed" },
+      { outlet: "Philippine News Agency", url: "https://www.pna.gov.ph/articles/1279419" },
+    ],
+  },
+
+  // ————— Tarlac: Pax Silica / Luzon Economic Corridor —————
+  {
+    id: "pax-silica",
+    place: "newclark",
+    category: "infra",
+    date: "2026-07-10",
+    title: "Pax Silica: US–PH race to seal deal on AI hub at New Clark City",
+    summary:
+      "The Philippines joined the US-led Pax Silica tech-supply-chain coalition in April, when the two countries unveiled a 4,000-acre Economic Security Zone in the Luzon Economic Corridor — billed as the initiative's first AI-native industrial hub, with Foxconn poised as first locator. The DOF says Washington now tags the project a top priority and wants the framework signed within the year, while critics warn over land use, sovereignty, and mineral 'plunder.'",
+    wiki: "New Clark City",
+    sources: [
+      { outlet: "US State Department", url: "https://www.state.gov/releases/office-of-the-spokesperson/2026/04/the-united-states-and-the-philippines-launch-plans-for-4000-acre-economic-security-zone-to-shore-up-supply-chains-first-ai-native-industrial-acceleration-hub-under-pax-silica" },
+      { outlet: "BusinessWorld", url: "https://bworldonline.com/top-stories/2026/07/10/762593/us-tags-pax-silica-initiative-in-philippines-as-top-priority-dof/" },
+      { outlet: "South China Morning Post", url: "https://www.scmp.com/week-asia/economics/article/3360932/philippines-pax-silica-ai-hub-plan-slammed-mineral-plunder" },
+      { outlet: "Philippine News Agency", url: "https://www.pna.gov.ph/articles/1279223" },
     ],
   },
 ];
