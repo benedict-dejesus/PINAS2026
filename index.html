@@ -15,6 +15,7 @@
 </head>
 <body>
   <div id="map" aria-label="Map of the Philippines with news markers"></div>
+  <div class="map-vignette" aria-hidden="true"></div>
 
   <!-- Floating header -->
   <header class="app-header" id="appHeader">
@@ -36,7 +37,7 @@
       </svg>
       <div class="brand-text">
         <h1>PILIPINAS <span>2026</span></h1>
-        <p>The year in news, mapped</p>
+        <p id="brandSub">The year in news, mapped</p>
       </div>
       <button class="about-btn" id="aboutBtn" aria-label="About this map">ⓘ</button>
     </div>
@@ -49,6 +50,12 @@
     <button class="sheet-close" id="sheetClose" aria-label="Close">✕</button>
     <div class="sheet-scroll" id="sheetContent"></div>
   </section>
+
+  <!-- Floating action buttons (after the sheet so CSS can react to its state) -->
+  <div class="fabs" aria-label="Map actions">
+    <button class="fab" id="fabShuffle" title="Surprise me — jump to a random story" aria-label="Random story">🎲</button>
+    <button class="fab" id="fabReset" title="Reset view" aria-label="Reset view">🧭</button>
+  </div>
 
   <!-- About modal -->
   <div class="modal-backdrop" id="aboutModal" hidden>

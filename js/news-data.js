@@ -31,6 +31,13 @@ const PLACES = {
   cotabato:    { name: "Cotabato City", area: "Bangsamoro (BARMM)", lat: 7.2236, lng: 124.2464 },
   prosperidad: { name: "Prosperidad", area: "Agusan del Sur", lat: 8.6100, lng: 125.9153 },
   davao:       { name: "Davao City", area: "Davao Region", lat: 7.1907, lng: 125.4553 },
+  mayon:       { name: "Mayon Volcano", area: "Albay, Bicol", lat: 13.2572, lng: 123.6856 },
+  bsp:         { name: "Bangko Sentral ng Pilipinas", area: "Malate, Manila", lat: 14.5695, lng: 120.9822 },
+  jolo:        { name: "Jolo", area: "Sulu", lat: 6.0521, lng: 121.0023 },
+  boracay:     { name: "Boracay", area: "Malay, Aklan", lat: 11.9674, lng: 121.9248 },
+  iloilo:      { name: "Iloilo City", area: "Western Visayas", lat: 10.7202, lng: 122.5621 },
+  philsa:      { name: "PhilSA / UP Diliman", area: "Quezon City", lat: 14.6537, lng: 121.0687 },
+  picc:        { name: "PICC", area: "CCP Complex, Pasay City", lat: 14.5520, lng: 120.9800 },
 };
 
 const NEWS_DATA = [
@@ -300,6 +307,122 @@ const NEWS_DATA = [
       { outlet: "International Criminal Court", url: "https://www.icc-cpi.int/news/duterte-case-trial-open-30-november-2026" },
       { outlet: "International Criminal Court", url: "https://www.icc-cpi.int/news/icc-pre-trial-chamber-i-confirms-all-charges-against-rodrigo-roa-duterte-and-commits-him-trial" },
       { outlet: "Inquirer.net", url: "https://globalnation.inquirer.net/324906/icc-sets-opening-of-dutertes-trial-on-nov-30-2026" },
+    ],
+  },
+
+  // ————— Luzon (Bicol) —————
+  {
+    id: "mayon-2026",
+    place: "mayon",
+    category: "disaster",
+    date: "2026-05-02",
+    title: "Mayon erupts, blanketing Albay in ash — 102,000+ affected",
+    summary:
+      "The country's most active volcano erupted on May 2, raining ash on more than 30,000 families (102,406 people) across 87 barangays, with 124 barangays in Albay ultimately affected by ashfall, lava flows, and pyroclastic currents. PHIVOLCS held Alert Level 3 as the effusive eruption ran for over 130 consecutive days, exposing gaps in evacuation transport and shelters.",
+    wiki: "Mayon",
+    sources: [
+      { outlet: "Al Jazeera", url: "https://www.aljazeera.com/video/newsfeed/2026/5/2/philippines-volcano-erupts-blanketing-ash-across-the-sky" },
+      { outlet: "Inquirer.net", url: "https://newsinfo.inquirer.net/2223366/mayon-volcano-ashfall-hits-over-30000-families" },
+      { outlet: "Philstar.com", url: "https://www.philstar.com/nation/2026/05/03/2525376/mayon-keeps-alert-level-3-amid-ash-fall" },
+    ],
+  },
+
+  // ————— Economy —————
+  {
+    id: "inflation-2026",
+    place: "bsp",
+    category: "infra",
+    date: "2026-05-25",
+    title: "Growth under siege: inflation hits 7.2% as GDP slows to 2.8%",
+    summary:
+      "An oil-price shock pushed headline inflation to 7.2% in April while first-quarter GDP growth slumped to 2.8%, far below target. The Bangko Sentral ng Pilipinas — which had raised its 2026 inflation forecast to 5.1% in late March — lifted its benchmark rate to 4.5%, with analysts warning it may keep hiking even at the expense of near-term growth.",
+    wiki: "Bangko Sentral ng Pilipinas",
+    sources: [
+      { outlet: "ISEAS Perspective", url: "https://www.iseas.edu.sg/articles-commentaries/iseas-perspective/2026-38-the-philippine-economy-in-2026-growth-under-siege-by-jc-punongbayan/" },
+      { outlet: "Manila Bulletin", url: "https://mb.com.ph/2026/05/25/bsp-likely-to-sacrifice-growth-to-tame-inflation" },
+      { outlet: "OECD Economic Surveys", url: "https://www.oecd.org/en/publications/oecd-economic-surveys-philippines-2026_f0e0c581-en.html" },
+    ],
+  },
+
+  // ————— Mindanao (Sulu) —————
+  {
+    id: "sulu-transition",
+    place: "jolo",
+    category: "politics",
+    date: "2026-06-29",
+    title: "Sulu formally shifts to Zamboanga Peninsula; Marcos hands over ₱453.8M",
+    summary:
+      "Following the Supreme Court ruling that Sulu is not part of BARMM, President Marcos declared the province part of the Zamboanga Peninsula region and ordered uninterrupted government services for its roughly one million residents. On a June visit he turned over ₱453.8 million for food-security and community projects across Zamboanga and Sulu — a transition Rappler calls a stress test for service delivery.",
+    wiki: "Sulu",
+    sources: [
+      { outlet: "Presidential Communications Office", url: "https://pco.gov.ph/news_releases/pbbm-declares-sulu-part-of-zamboanga-peninsula-orders-uninterrupted-govt-services/" },
+      { outlet: "Rappler", url: "https://www.rappler.com/philippines/mindanao/sulu-shift-zamboanga-peninsula-tests-government-ability-services/" },
+      { outlet: "Philstar.com", url: "https://www.philstar.com/nation/2026/06/30/2538687/marcos-hands-over-p4538-million-zamboanga-sulu-projects" },
+    ],
+  },
+
+  // ————— Tourism —————
+  {
+    id: "tourism-boom",
+    place: "boracay",
+    category: "culture",
+    date: "2026-04-30",
+    title: "PH posts Southeast Asia's fastest aviation growth as tourism surges",
+    summary:
+      "The Philippines hit 5.82 million airline seats in April — Southeast Asia's fastest-growing aviation market per OAG, with domestic capacity up 16% — as Boracay, Palawan, and Siargao ranked among Asia's best islands in Condé Nast Traveler's Readers' Choice Awards. Boracay still packs beyond its limits, reviving debates over carrying capacity set after its 2018 rehabilitation.",
+    wiki: "Boracay",
+    sources: [
+      { outlet: "Travel And Tour World", url: "https://www.travelandtourworld.com/news/article/philippines-manila-cebu-and-boracay-lead-southeast-asia-tourism-boom-as-philippine-aviation-sector-records-fastest-growth-in-2026/" },
+      { outlet: "BusinessMirror", url: "https://businessmirror.com.ph/2026/04/09/tourist-numbers-dip-but-boracay-still-packs-beyond-its-limits/" },
+      { outlet: "Philippine News Agency", url: "https://www.pna.gov.ph/articles/1266128" },
+    ],
+  },
+
+  // ————— Western Visayas —————
+  {
+    id: "philbex-iloilo",
+    place: "iloilo",
+    category: "infra",
+    date: "2026-07-09",
+    title: "PHILBEX Iloilo returns: 400+ exhibitors converge on ICON",
+    summary:
+      "The Philippine Building and Construction Expo returned to the Iloilo Convention Center on July 9–12 for its fourth straight year, bundled with travel and food expos as 'Iloilo Trio 2026' — more than 400 exhibitors underscoring Iloilo's rise as Western Visayas' business-events hub.",
+    wiki: "Iloilo City",
+    sources: [
+      { outlet: "Panay News", url: "https://www.panaynews.net/worldbex-presents-philbex-iloilo-western-visayas-premier-construction-and-design-expo/" },
+      { outlet: "Panay News", url: "https://www.panaynews.net/worldbex-brings-business-travel-and-flavors-to-life-at-iloilo-trio-2026/" },
+    ],
+  },
+
+  // ————— Science —————
+  {
+    id: "mula-satellite",
+    place: "philsa",
+    category: "infra",
+    date: "2026-03-21",
+    title: "MULA, the Philippines' most advanced satellite, readies for launch",
+    summary:
+      "The 130-kg Multispectral Unit for Land Assessment — built with Surrey Satellite Technology and carrying a TrueColour imager with 2 TB of storage — was slated for a SpaceX rideshare by Q4 2026, though later reports point to a slip toward April 2027 on Transporter-20. PhilSA's 2026 slate also includes the Maya-7 cubesat and new nationwide mangrove and benthic-habitat maps.",
+    wiki: "Philippine Space Agency",
+    sources: [
+      { outlet: "The Manila Times", url: "https://www.manilatimes.net/2026/03/21/business/science-technology/spacex-to-launch-philippines-mula-satellite-by-q4/2304518" },
+      { outlet: "PhilSA", url: "https://philsa.gov.ph/news/president-marcos-jr-convenes-philippine-space-council-approves-programs-on-satellite-development-and-key-space-initiatives/" },
+      { outlet: "Philippine News Agency", url: "https://www.pna.gov.ph/articles/1258899" },
+    ],
+  },
+
+  // ————— ASEAN chairmanship —————
+  {
+    id: "asean-fmm",
+    place: "picc",
+    category: "politics",
+    date: "2026-07-22",
+    title: "Manila hosts ASEAN foreign ministers under PH chairmanship",
+    summary:
+      "Foreign ministers gather in Manila this week for the 59th ASEAN Foreign Ministers' Meeting as the Philippines chairs the bloc in 2026. US Secretary of State Marco Rubio is expected to join the related meetings and pay a courtesy call on President Marcos — with the South China Sea code of conduct high on the agenda.",
+    wiki: "Philippine International Convention Center",
+    sources: [
+      { outlet: "The Manila Times", url: "https://www.manilatimes.net/2026/07/20/news/president-marcos-meets-us-envoys-to-india-and-ph-reaffirms-century-old-alliance/2387598" },
     ],
   },
 ];
