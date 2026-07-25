@@ -44,16 +44,19 @@ git push origin main
 
 ---
 
-## Step 2 — Let Actions write to the repository
+## Step 2 — (nothing to do)
 
-The scheduled job commits the refreshed news file back to your repo, so it needs
-write access. This is the single most common reason the setup fails, so do it now.
+Earlier versions of this project committed the news file back to the repository,
+which needed write permissions. **They no longer do.** The news is generated
+during the deploy and shipped straight into the published site, so the workflow
+runs with read-only access to your code.
 
-1. Go to your repo on GitHub → **Settings**
-2. In the left sidebar: **Actions** → **General**
-3. Scroll to **Workflow permissions**
-4. Select **Read and write permissions**
-5. Click **Save**
+If you previously set **Settings → Actions → General → Workflow permissions** to
+*Read and write*, you can safely put it back to *Read repository contents*.
+
+Why it changed: a bot committing to `main` meant your branch could diverge from
+GitHub the moment you edited anything locally, and both sides would fight over
+the same generated file. Not committing it removes that whole class of problem.
 
 ---
 
@@ -117,6 +120,11 @@ When the deploy job finishes, your map is live at:
 ```
 https://benedict-dejesus.github.io/PINAS2026/
 ```
+
+> **The URL is case-sensitive.** `PINAS2026` must be in capitals — visiting
+> `/pinas2026/` returns a GitHub 404 even though the site is working perfectly.
+> This catches people out on phones, where autocorrect and typed URLs tend to be
+> lowercase. Bookmark it or send yourself the link rather than retyping it.
 
 The URL also appears on the deploy job in the Actions run, and under
 **Settings → Pages**.
@@ -243,6 +251,33 @@ The knobs live at the top of `scripts/fetch-news.mjs`:
 otherwise the ingest stores stories the interface will never display, or the
 interface promises a window the data doesn't cover.
 
+### Where the news file actually lives
+
+`data/auto-news.json` is **generated, never committed** — it's in `.gitignore`.
+Each run of the workflow:
+
+1. restores the previous archive from the **Actions cache**,
+2. merges in whatever the feeds are carrying now,
+3. drops anything older than 31 days,
+4. ships the result inside the Pages artifact, and
+5. saves the updated archive back to the cache for next time.
+
+The cache is what lets the map hold a month of stories when RSS feeds only expose
+the last few days. If it's ever evicted (GitHub clears caches unused for 7 days,
+which won't happen while the schedule runs every 6 hours), the next run simply
+rebuilds from the feeds and starts accumulating again — nothing breaks.
+
+Because nothing is committed, **the bot never touches your repository**, so your
+branch can't diverge and that file can never cause a merge conflict.
+
+To work on the map locally, generate a copy yourself:
+
+```bash
+node scripts/fetch-news.mjs
+```
+
+Without it the map still runs — it just shows your hand-verified stories only.
+
 ### Why the map size stays flat
 
 Because stories roll off after a month, the data file reaches a steady state
@@ -287,9 +322,10 @@ npx http-server . -p 5174 -c-1
 
 | Symptom | Cause and fix |
 | --- | --- |
+| **404 on your phone** but the site works elsewhere | The URL path is case-sensitive. Use `/PINAS2026/`, not `/pinas2026/`. |
 | "Update news & deploy" isn't in the Actions sidebar | The workflow file isn't on GitHub. Run `git status -sb`; if it says `ahead`, `git push origin main`. Committing locally is not enough. |
 | Actions tab only shows `pages-build-deployment` | Same cause as above. That entry is GitHub's own Pages job, not this project's workflow. |
-| Workflow fails at "Commit refreshed data" with a 403 | Step 2 was missed. Settings → Actions → General → Workflow permissions → **Read and write**. |
+| Site shows far fewer stories than usual after a run | The Actions cache was evicted, so the archive restarted from whatever the feeds currently carry (about 5 days). It refills on its own over the following days. |
 | Deploy job fails with "Pages not enabled" | Step 3 was missed, or Source isn't set to **GitHub Actions**. |
 | Site loads but shows only your hand-written stories | `data/auto-news.json` hasn't been committed yet. Run the workflow manually and check the ingest log. |
 | One source shows ✗ in the log | Usually a temporary timeout or the outlet blocking cloud IPs. Harmless if others succeeded — the run continues. If it fails every time for a week, remove it from `sources.mjs`. |
@@ -312,7 +348,7 @@ PINAS2026/
 │  ├─ news-data.js                 YOUR hand-verified stories (never auto-edited)
 │  └─ app.js                       map, filters, sheet, merge logic
 ├─ data/
-│  └─ auto-news.json               generated — do not edit by hand
+│  └─ auto-news.json               generated + gitignored — never committed
 ├─ scripts/
 │  ├─ sources.mjs                  the credible-source allowlist
 │  ├─ gazetteer.mjs                places the map can resolve

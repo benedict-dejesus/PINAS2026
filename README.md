@@ -41,6 +41,15 @@ Open `index.html` in a browser, or serve it locally:
 npx http-server . -p 5174 -c-1
 ```
 
+The live news file (`data/auto-news.json`) is generated, not committed. To pull a
+copy for local development:
+
+```bash
+node scripts/fetch-news.mjs
+```
+
+Without it the map still works — it just shows the hand-verified stories only.
+
 To set up automatic updates and publish it to the web, follow
 **[SETUP-GITHUB.md](SETUP-GITHUB.md)** — about 10 minutes, no API keys required.
 
