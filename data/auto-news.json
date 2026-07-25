@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-25T14:38:10.302Z",
+  "generatedAt": "2026-07-25T14:55:48.616Z",
   "retentionDays": 31,
   "counts": {
-    "items": 92,
+    "items": 93,
     "places": 42,
-    "addedThisRun": 17
+    "addedThisRun": 16
   },
   "sourceHealth": [
     {
@@ -26,7 +26,7 @@
       "url": "https://data.gmanetwork.com/gno/rss/news/feed.xml",
       "ok": true,
       "items": 15,
-      "placed": 10
+      "placed": 11
     },
     {
       "outlet": "GMA News",
@@ -699,6 +699,22 @@
         {
           "outlet": "GMA News",
           "url": "https://www.gmanetwork.com/news/topstories/nation/996085/police-inspect-commonwealth-avenue-qc-as-part-of-sona-2026-preparations/story/"
+        }
+      ]
+    },
+    {
+      "id": "auto-7gdfgu",
+      "place": "gaz:luzon",
+      "category": "disaster",
+      "date": "2026-07-25",
+      "title": "Kiyapo triggers floods, landslides across Northern Luzon",
+      "summary": "Tropical Storm Kiyapo triggered widespread flooding and landslides in several parts of Northern Luzon as it battered the region on Friday, July 24.",
+      "provenance": "auto",
+      "matchedOn": "Luzon",
+      "sources": [
+        {
+          "outlet": "GMA News",
+          "url": "https://www.gmanetwork.com/news/topstories/regions/996139/kiyapo-triggers-floods-landslides-across-northern-luzon/story/"
         }
       ]
     },
