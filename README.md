@@ -1,12 +1,13 @@
 # Pinas 2026 🇵🇭
 
+### Your credible, 24/7 guide to the latest local news
+
 **A live map of the Philippines where the landmarks are the news.**
 
-Instead of labelling towns and provinces, this map plots verified 2026 news
-stories where they happened. Some places are empty. Others — Malacañang, the
-Senate, Ayungin Shoal — stack up several stories at once. Markers are coloured by
-how fresh the story is, so you can see at a glance where the country is loudest
-right now.
+Instead of labelling towns and provinces, this map plots news stories where they
+happened. Some places are empty. Others — Malacañang, the Senate, Ayungin Shoal —
+stack up several stories at once. Markers are coloured by how fresh the story is,
+so you can see at a glance where the country is loudest right now.
 
 Built as a static site: no backend, no build step, no dependencies to install.
 
@@ -14,9 +15,11 @@ Built as a static site: no backend, no build step, no dependencies to install.
 
 ## What it does
 
-- **Time-based browsing.** Filter by Today, This week, This month, 3 months, or
-  Earlier. Marker colour and pulse speed follow the same scale — today's news
-  glows hot pink and beats fastest.
+- **Always current.** The map holds a rolling **31-day window**. Filter by Today,
+  This week, or This month; older stories roll off automatically, so the map stays
+  fast and never becomes a stale archive.
+- **Freshness at a glance.** Marker colour and pulse speed follow the same scale —
+  today's news glows hot pink and beats fastest.
 - **News hotspots.** Nearby places cluster automatically; tap a cluster to zoom in
   until it splits apart.
 - **Two kinds of story, always labelled.** `✔ Verified` stories are hand-researched
@@ -76,6 +79,17 @@ Edit `js/news-data.js`. The automated pipeline never touches this file.
 ```
 
 Add a place by extending `PLACES` in the same file with `{ name, area, lat, lng }`.
+
+---
+
+> **Note:** stories older than the 31-day window stay in the file but aren't
+> shown. Widen `MAX_AGE_DAYS` in `js/app.js` to bring them back.
+
+---
+
+## Author
+
+**Benedict de Jesus** — Author & Developer
 
 ---
 

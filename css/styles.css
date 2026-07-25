@@ -148,14 +148,25 @@ body {
   background-clip: text;
   color: transparent;
 }
+.tagline {
+  font-size: 0.635rem;
+  line-height: 1.3;
+  color: #cdb87a;
+  letter-spacing: 0.015em;
+  margin-top: 3px;
+  background: linear-gradient(90deg, var(--gold), #ffb37a 70%, #ff9d5c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .brand-sub {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--text-dim);
   letter-spacing: 0.02em;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 .live-dot {
   width: 7px; height: 7px;
@@ -832,6 +843,57 @@ body {
 .about-list li { font-size: 0.8rem; line-height: 1.55; color: #c7cfe6; }
 .about-list .prov-badge { margin-right: 6px; vertical-align: middle; }
 .about-note { font-size: 0.78rem !important; color: var(--text-dim) !important; margin-top: 8px; }
+.about-tagline {
+  font-family: var(--font-display);
+  font-size: 0.95rem !important;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, var(--gold), #ff9d5c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+}
+.author-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, rgba(252, 209, 22, 0.09), rgba(255, 45, 111, 0.07));
+}
+.author-avatar {
+  width: 40px; height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  color: #1a1400;
+  background: radial-gradient(circle at 32% 30%, #ffe97a, var(--gold) 60%, #d1a80c);
+  box-shadow: 0 0 16px rgba(252, 209, 22, 0.35);
+}
+.author-meta { display: flex; flex-direction: column; line-height: 1.35; }
+.author-meta strong { font-size: 0.9rem; color: var(--text); }
+.author-meta span {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.intro-by {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.64rem;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(252, 209, 22, 0.6);
+}
 .modal .modal-foot { margin-top: 18px; font-size: 0.66rem; color: var(--text-dim); }
 .modal-close {
   position: absolute;

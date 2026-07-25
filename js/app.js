@@ -18,34 +18,52 @@
     const PH_BOUNDS = L.latLngBounds([4.2, 114.0], [21.5, 127.6]);
     const CLUSTER_PX = 54;
     const DAY_MS = 864e5;
+    const LIST_LIMIT = 60; // max story cards rendered into the sheet at once
 
     /* ————————————————— time tiers ————————————————— */
+    // This is a guide to the latest news, so the map holds one month and no
+    // more. Anything older is dropped rather than shown — which also means the
+    // story count plateaus instead of growing forever.
+    const MAX_AGE_DAYS = 31;
+
     // Exclusive tiers drive marker colour and pulse speed.
     const TIERS = [
-      { id: "today",   label: "Today",       maxDays: 0,        color: "#ff2d6f", pulse: "1.3s" },
-      { id: "week",    label: "This week",   maxDays: 7,        color: "#fcd116", pulse: "2.1s" },
-      { id: "month",   label: "This month",  maxDays: 31,       color: "#38bdf8", pulse: "2.9s" },
-      { id: "quarter", label: "3 months",    maxDays: 92,       color: "#a78bfa", pulse: "3.7s" },
-      { id: "earlier", label: "Earlier",     maxDays: Infinity, color: "#6b7a99", pulse: "4.6s" },
+      { id: "today", label: "Today",      maxDays: 0,        color: "#ff2d6f", pulse: "1.3s" },
+      { id: "week",  label: "This week",  maxDays: 7,        color: "#fcd116", pulse: "2.1s" },
+      { id: "month", label: "This month", maxDays: Infinity, color: "#38bdf8", pulse: "2.9s" },
     ];
-    // Filters are cumulative ("this week" includes today), which is how people
-    // actually think about recency. "Earlier" is the only exclusive one.
+    // Cumulative, which is how people actually think about recency:
+    // "this week" includes today, "this month" includes both.
     const FILTERS = [
-      { id: "all",     label: "All stories", color: "#e2e8f0", test: () => true },
-      { id: "today",   label: "Today",       color: "#ff2d6f", test: (d) => d <= 0 },
-      { id: "week",    label: "This week",   color: "#fcd116", test: (d) => d <= 7 },
-      { id: "month",   label: "This month",  color: "#38bdf8", test: (d) => d <= 31 },
-      { id: "quarter", label: "3 months",    color: "#a78bfa", test: (d) => d <= 92 },
-      { id: "earlier", label: "Earlier",     color: "#6b7a99", test: (d) => d > 92 },
+      { id: "today", label: "Today",      color: "#ff2d6f", test: (d) => d <= 0 },
+      { id: "week",  label: "This week",  color: "#fcd116", test: (d) => d <= 7 },
+      { id: "month", label: "This month", color: "#38bdf8", test: (d) => d <= MAX_AGE_DAYS },
     ];
 
-    const startOfToday = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
+    // daysOld() runs tens of thousands of times per render once the map is
+    // full, so cache by date string and only rebuild the base at midnight.
+    let midnightMs = 0, nextMidnightMs = 0;
+    const dayCache = new Map();
+    function refreshDayBase() {
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      midnightMs = t.getTime();
+      nextMidnightMs = midnightMs + DAY_MS;
+      dayCache.clear();
+    }
+    refreshDayBase();
     function daysOld(iso) {
-      const d = new Date(iso + "T00:00:00");
-      if (Number.isNaN(d.getTime())) return 9999;
-      return Math.round((startOfToday() - d) / DAY_MS);
+      if (Date.now() >= nextMidnightMs) refreshDayBase();
+      let cached = dayCache.get(iso);
+      if (cached === undefined) {
+        const parsed = Date.parse(iso + "T00:00:00");
+        cached = Number.isNaN(parsed) ? 9999 : Math.round((midnightMs - parsed) / DAY_MS);
+        dayCache.set(iso, cached);
+      }
+      return cached;
     }
     const tierOf = (days) => TIERS.find((t) => days <= t.maxDays) ?? TIERS[TIERS.length - 1];
+    const withinWindow = (s) => daysOld(s.date) <= MAX_AGE_DAYS;
 
     function relativeTime(iso) {
       const d = daysOld(iso);
@@ -151,32 +169,32 @@
       for (const list of byPlace.values()) list.sort((a, b) => b.date.localeCompare(a.date));
     }
 
-    // Curated stories first — they are the hand-verified backbone.
+    // Curated stories first — they are the hand-verified backbone. Older ones
+    // stay in news-data.js but sit outside the one-month window, so they are
+    // not shown; widen MAX_AGE_DAYS to bring them back.
     stories = NEWS_DATA
-      .filter((s) => PLACES[s.place] && CATEGORIES[s.category])
+      .filter((s) => PLACES[s.place] && CATEGORIES[s.category] && withinWindow(s))
       .map((s) => ({ ...s, provenance: "curated" }));
     rebuildIndex();
 
     /* ————————————————— state ————————————————— */
     let selectedPlace = null;
-    let activeFilter = "all";
+    let activeFilter = "month"; // widest view — everything the map holds
     let introDone = false;
     const hasHover = window.matchMedia("(hover: hover)").matches;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const activeTest = () => (FILTERS.find((f) => f.id === activeFilter) ?? FILTERS[0]).test;
-    const storyMatches = (s) => activeTest()(daysOld(s.date));
+    const activeFilterDef = () =>
+      FILTERS.find((f) => f.id === activeFilter) ?? FILTERS[FILTERS.length - 1];
+    const storyMatches = (s) => activeFilterDef().test(daysOld(s.date));
 
     function visibleStories(placeId) {
       const all = byPlace.get(placeId) ?? [];
-      if (activeFilter === "all") return all;
       const hit = all.filter(storyMatches);
       return hit.length ? hit : all;
     }
     function visiblePlaceIds() {
-      return [...byPlace.keys()].filter(
-        (id) => activeFilter === "all" || byPlace.get(id).some(storyMatches)
-      );
+      return [...byPlace.keys()].filter((id) => byPlace.get(id).some(storyMatches));
     }
     /** Freshest story at a place decides its colour. */
     function leadTier(placeId) {
@@ -487,13 +505,18 @@
       });
     }
 
-    function renderPlaceList(placeId, list) {
+    function renderPlaceList(placeId, fullList) {
       const place = places[placeId];
       const tier = leadTier(placeId);
+      // A busy place can hold hundreds of stories; rendering them all would
+      // stall the sheet, so cap the DOM and say what was trimmed.
+      const list = fullList.slice(0, LIST_LIMIT);
       setSheetHtml(`
         <div class="place-head" style="--c:${tier.color}">
           <h2>${escapeHtml(place.name)}</h2>
-          <p>${escapeHtml(place.area)} · ${list.length} stories</p>
+          <p>${escapeHtml(place.area)} · ${fullList.length} stor${fullList.length === 1 ? "y" : "ies"}${
+            fullList.length > list.length ? ` · newest ${list.length} shown` : ""
+          }</p>
           <span class="hot">⚡ News hotspot</span>
         </div>
         ${list.map((s, i) => storyCardHtml(s, i)).join("")}
@@ -505,15 +528,17 @@
     }
 
     function renderLatest() {
-      const filter = FILTERS.find((f) => f.id === activeFilter) ?? FILTERS[0];
-      const list = stories
-        .filter((s) => filter.test(daysOld(s.date)))
+      const filter = activeFilterDef();
+      const matching = stories.filter((s) => filter.test(daysOld(s.date)));
+      const list = matching
         .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, 60);
+        .slice(0, LIST_LIMIT);
       setSheetHtml(`
         <div class="place-head" style="--c:${filter.color}">
           <h2>Latest stories</h2>
-          <p>${filter.id === "all" ? "Everything on the map" : filter.label} · ${list.length} shown</p>
+          <p>${filter.label} · showing ${list.length}${
+            matching.length > list.length ? ` of ${matching.length}` : ""
+          }</p>
         </div>
         ${list.length
           ? list.map((s, i) => storyCardHtml(s, i, { showPlace: true })).join("")
@@ -691,6 +716,9 @@
         const fresh = payload.items.filter((item) => {
           if (!places[item.place] || !item.date || !item.title) return false;
           if (!Array.isArray(item.sources) || !item.sources.length) return false;
+          // Belt and braces: the ingest already prunes, but never trust a data
+          // file to respect the window the UI promises.
+          if (!withinWindow(item)) return false;
           return !item.sources.some((x) => curatedUrls.has(normalizeUrl(x.url)));
         });
 

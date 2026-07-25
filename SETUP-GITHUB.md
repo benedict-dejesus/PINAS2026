@@ -1,5 +1,8 @@
 # Setting up auto-updating news on GitHub
 
+*Pinas 2026 — your credible, 24/7 guide to the latest local news.*
+*By Benedict de Jesus, Author & Developer.*
+
 This guide takes **Pinas 2026** from a folder on your laptop to a live site that
 refreshes itself with Philippine news every six hours — for free, with no server.
 
@@ -71,6 +74,19 @@ Don't wait for the schedule. Trigger it now so you can watch it work.
 1. Go to the **Actions** tab
 2. Select **Update news & deploy** in the left sidebar
 3. Click **Run workflow** → leave `dry_run` unchecked → **Run workflow**
+
+> **Only see `pages-build-deployment` in the sidebar?** Then the workflow file
+> hasn't reached GitHub yet — committing alone isn't enough, it has to be pushed.
+> GitHub only lists a workflow (and only shows its **Run workflow** button) once
+> the file exists on the default branch. Check with:
+>
+> ```bash
+> git status -sb
+> ```
+>
+> If it says `ahead 1` (or more), run `git push origin main` and refresh the
+> Actions tab. The push itself also starts the workflow, so you may not need to
+> click anything.
 
 The run takes about a minute. Open it and you'll see two jobs:
 
@@ -217,10 +233,22 @@ The knobs live at the top of `scripts/fetch-news.mjs`:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `retentionDays` | 120 | How long auto stories stay on the map |
-| `maxItems` | 400 | Hard cap on stored stories |
+| `retentionDays` | 31 | How long stories stay on the map before rolling off |
+| `maxItems` | 1800 | Hard cap on stored stories (~50/day × 31 days, with headroom) |
 | `maxPerPlacePerDay` | 3 | Stops one busy city burying everywhere else |
 | `perSourceLimit` | 25 | Newest N items read per feed per run |
+
+**Keep `retentionDays` and the UI in sync.** The app enforces its own cutoff via
+`MAX_AGE_DAYS` in `js/app.js` (also 31). If you widen one, widen the other —
+otherwise the ingest stores stories the interface will never display, or the
+interface promises a window the data doesn't cover.
+
+### Why the map size stays flat
+
+Because stories roll off after a month, the data file reaches a steady state
+instead of growing forever: roughly 1,000–1,500 stories, about 1 MB raw and
+~250 KB gzipped over the wire. It will look much the same in December as it does
+today, with no maintenance from you.
 
 ### Add your own verified story
 
@@ -259,6 +287,8 @@ npx http-server . -p 5174 -c-1
 
 | Symptom | Cause and fix |
 | --- | --- |
+| "Update news & deploy" isn't in the Actions sidebar | The workflow file isn't on GitHub. Run `git status -sb`; if it says `ahead`, `git push origin main`. Committing locally is not enough. |
+| Actions tab only shows `pages-build-deployment` | Same cause as above. That entry is GitHub's own Pages job, not this project's workflow. |
 | Workflow fails at "Commit refreshed data" with a 403 | Step 2 was missed. Settings → Actions → General → Workflow permissions → **Read and write**. |
 | Deploy job fails with "Pages not enabled" | Step 3 was missed, or Source isn't set to **GitHub Actions**. |
 | Site loads but shows only your hand-written stories | `data/auto-news.json` hasn't been committed yet. Run the workflow manually and check the ingest log. |

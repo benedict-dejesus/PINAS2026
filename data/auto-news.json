@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-25T12:34:45.679Z",
-  "retentionDays": 120,
+  "generatedAt": "2026-07-25T14:38:10.302Z",
+  "retentionDays": 31,
   "counts": {
-    "items": 90,
+    "items": 92,
     "places": 42,
-    "addedThisRun": 101
+    "addedThisRun": 17
   },
   "sourceHealth": [
     {
@@ -26,7 +26,7 @@
       "url": "https://data.gmanetwork.com/gno/rss/news/feed.xml",
       "ok": true,
       "items": 15,
-      "placed": 9
+      "placed": 10
     },
     {
       "outlet": "GMA News",
@@ -100,6 +100,13 @@
       "lng": 125.4553,
       "wiki": "Davao City"
     },
+    "gaz:manila": {
+      "name": "Manila",
+      "area": "Metro Manila",
+      "lat": 14.5995,
+      "lng": 120.9842,
+      "wiki": "Manila"
+    },
     "gaz:orimindoro": {
       "name": "Oriental Mindoro",
       "area": "Mimaropa",
@@ -128,13 +135,6 @@
       "lng": 121.05,
       "wiki": "Office of the Ombudsman (Philippines)"
     },
-    "gaz:manila": {
-      "name": "Manila",
-      "area": "Metro Manila",
-      "lat": 14.5995,
-      "lng": 120.9842,
-      "wiki": "Manila"
-    },
     "gaz:caloocan": {
       "name": "Caloocan",
       "area": "Metro Manila",
@@ -149,19 +149,12 @@
       "lng": 123.4368,
       "wiki": "Pagadian"
     },
-    "gaz:cotabatocity": {
-      "name": "Cotabato City",
-      "area": "BARMM",
-      "lat": 7.2236,
-      "lng": 124.2464,
-      "wiki": "Cotabato City"
-    },
-    "gaz:subic": {
-      "name": "Subic",
-      "area": "Zambales",
-      "lat": 14.879,
-      "lng": 120.232,
-      "wiki": "Subic, Zambales"
+    "gaz:rizal": {
+      "name": "Rizal",
+      "area": "Calabarzon",
+      "lat": 14.6037,
+      "lng": 121.3084,
+      "wiki": "Rizal (province)"
     },
     "gaz:taguig": {
       "name": "Taguig",
@@ -212,13 +205,6 @@
       "lng": 121.0437,
       "wiki": "Quezon City"
     },
-    "gaz:maguindanao": {
-      "name": "Maguindanao",
-      "area": "BARMM",
-      "lat": 6.95,
-      "lng": 124.4167,
-      "wiki": "Maguindanao"
-    },
     "gaz:mindanao": {
       "name": "Mindanao",
       "area": "Southern Philippines",
@@ -233,19 +219,19 @@
       "lng": 124.95,
       "wiki": "Sarangani"
     },
+    "gaz:subic": {
+      "name": "Subic",
+      "area": "Zambales",
+      "lat": 14.879,
+      "lng": 120.232,
+      "wiki": "Subic, Zambales"
+    },
     "gaz:paranaque": {
       "name": "Parañaque",
       "area": "Metro Manila",
       "lat": 14.4793,
       "lng": 121.0198,
       "wiki": "Parañaque"
-    },
-    "gaz:sultankudarat": {
-      "name": "Sultan Kudarat",
-      "area": "Soccsksargen",
-      "lat": 6.5069,
-      "lng": 124.4198,
-      "wiki": "Sultan Kudarat"
     },
     "gaz:senate": {
       "name": "Senate of the Philippines",
@@ -274,6 +260,20 @@
       "lat": 8.9475,
       "lng": 125.5406,
       "wiki": "Butuan"
+    },
+    "gaz:cotabatocity": {
+      "name": "Cotabato City",
+      "area": "BARMM",
+      "lat": 7.2236,
+      "lng": 124.2464,
+      "wiki": "Cotabato City"
+    },
+    "gaz:maguindanao": {
+      "name": "Maguindanao",
+      "area": "BARMM",
+      "lat": 6.95,
+      "lng": 124.4167,
+      "wiki": "Maguindanao"
     },
     "gaz:negrosocc": {
       "name": "Negros Occidental",
@@ -415,6 +415,38 @@
       ]
     },
     {
+      "id": "auto-15seplu",
+      "place": "gaz:manila",
+      "category": "justice",
+      "date": "2026-07-25",
+      "title": "Legarda: 5th Sona must bridge growth and Filipino lives",
+      "summary": "MANILA, Philippines – As President Ferdinand Marcos Jr. prepares to deliver his fifth State of the Nation Address (Sona), Senator Loren Legarda said the Filipino people deserve an honest account of where the country stands after years marked by economic uncertainty, rising prices, corruption controversies, climate…",
+      "provenance": "auto",
+      "matchedOn": "Manila",
+      "sources": [
+        {
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270397/legarda-5th-sona-must-bridge-growth-and-filipino-lives"
+        }
+      ]
+    },
+    {
+      "id": "auto-16j9wl9",
+      "place": "gaz:manila",
+      "category": "justice",
+      "date": "2026-07-25",
+      "title": "Ombudsman files 14 counts of graft vs Uswag Ilonggo solon",
+      "summary": "MANILA, Philippines — The Office of the Ombudsman filed 14 counts of graft before the Sandiganbayan on Saturday, July 25, against Uswag Ilonggo Rep. James “Jojo” Ang Jr. over his alleged links to a construction firm. Assistant Ombudsman Mico Clavano said Saturday that Ang was paid nearly P199 million from a…",
+      "provenance": "auto",
+      "matchedOn": "Manila",
+      "sources": [
+        {
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270380/ombudsman-files-14-counts-of-graft-vs-uswag-ilonggo-solon"
+        }
+      ]
+    },
+    {
       "id": "auto-172lyr2",
       "place": "gaz:orimindoro",
       "category": "politics",
@@ -527,34 +559,18 @@
       ]
     },
     {
-      "id": "auto-1kegil0",
-      "place": "gaz:cotabatocity",
-      "category": "justice",
-      "date": "2026-07-25",
-      "title": "P2.8-M smuggled cigarettes seized in Cotabato",
-      "summary": "COTABATO CITY — Police arrested two men and seized an estimated P2.8 million worth of suspected smuggled cigarettes during a checkpoint operation in Midsayap, Cotabato, authorities said. The suspects, each driving a Toyota HiAce van, were flagged down by joint operatives of the Cotabato Highway Patrol Team and the…",
-      "provenance": "auto",
-      "matchedOn": "Cotabato City",
-      "sources": [
-        {
-          "outlet": "Inquirer.net",
-          "url": "https://newsinfo.inquirer.net/2270247/p2-8-m-smuggled-cigarettes-seized-in-cotabato"
-        }
-      ]
-    },
-    {
-      "id": "auto-1l6ildp",
-      "place": "gaz:subic",
+      "id": "auto-1iuy07r",
+      "place": "gaz:rizal",
       "category": "politics",
       "date": "2026-07-25",
-      "title": "PCG traces Subic pollutant to port terminal drain",
-      "summary": "SUBIC BAY FREEPORT — While the Subic Bay Metropolitan Authority (SBMA) awaits laboratory results from water samples collected after a foul-smelling substance surfaced off a beach resort last week, the Philippine Coast Guard (PCG) said Saturday (July 25) it had identified the pollutant as leachate and traced its…",
+      "title": "9 cybersex victims, including 5 minors, rescued in Cainta, Rizal",
+      "summary": "Nine male cybersex victims, including five minors, were rescued in Cainta, Rizal, during an operation by the National Bureau of Investigation (NBI) Human Trafficking Division.",
       "provenance": "auto",
-      "matchedOn": "Subic",
+      "matchedOn": "Rizal",
       "sources": [
         {
-          "outlet": "Inquirer.net",
-          "url": "https://newsinfo.inquirer.net/2270243/pcg-traces-subic-pollutant-to-port-terminal-drain"
+          "outlet": "GMA News",
+          "url": "https://www.gmanetwork.com/news/topstories/metro/996137/9-cybersex-victims-including-5-minors-rescued-in-cainta-rizal/story/"
         }
       ]
     },
@@ -571,22 +587,6 @@
         {
           "outlet": "Inquirer.net",
           "url": "https://newsinfo.inquirer.net/2270306/still-investigating-taguigs-projects-to-reach-logical-conclusion"
-        }
-      ]
-    },
-    {
-      "id": "auto-1mzwxlx",
-      "place": "gaz:manila",
-      "category": "disaster",
-      "date": "2026-07-25",
-      "title": "Typhoon Noul, enhanced habagat to bring rain in most of PH – Pagasa",
-      "summary": "MANILA, Philippines — The trough of typhoon Noul, formerly Kiyapo, and the southwest monsoon, or habagat, persist to affect major parts of the country until Sunday, July 26, the state weather bureau said. Philippine Atmospheric, Geophysical and Astronomical Services Administration (Pagasa) weather specialist Daniel…",
-      "provenance": "auto",
-      "matchedOn": "Manila",
-      "sources": [
-        {
-          "outlet": "Inquirer.net",
-          "url": "https://newsinfo.inquirer.net/2270370/typhoon-noul-enhanced-habagat-to-bring-rain-in-most-of-ph-pagasa"
         }
       ]
     },
@@ -687,22 +687,6 @@
       ]
     },
     {
-      "id": "auto-1ysjyxm",
-      "place": "gaz:manila",
-      "category": "politics",
-      "date": "2026-07-25",
-      "title": "No gun ban for Marcos’ 5th Sona, PNP clarifies",
-      "summary": "MANILA, Philippines — No gun ban will be in effect on Monday, July 27, during President Ferdinand Marcos Jr.’s fifth State of the Nation Address (Sona), the Philippine National Police (PNP) clarified. “The PNP has not issued any directive imposing a nationwide gun ban for the event. However, existing laws, local…",
-      "provenance": "auto",
-      "matchedOn": "Manila",
-      "sources": [
-        {
-          "outlet": "Inquirer.net",
-          "url": "https://newsinfo.inquirer.net/2270352/no-gun-ban-for-marcos-5th-sona-pnp-clarifies"
-        }
-      ]
-    },
-    {
       "id": "auto-5ec0di",
       "place": "gaz:quezoncity",
       "category": "politics",
@@ -719,34 +703,18 @@
       ]
     },
     {
-      "id": "auto-9srjj8",
-      "place": "gaz:maguindanao",
-      "category": "disaster",
+      "id": "auto-8eafxn",
+      "place": "gaz:ombudsman",
+      "category": "justice",
       "date": "2026-07-25",
-      "title": "Maguindanao del Sur LGUs rescue civilians trapped by floods",
-      "summary": "COTABATO CITY — About 100 families have been safely rescued by the disaster responders after they were trapped by floods triggered by heavy downpour on Friday, July 24, in Ampatuan, Maguindanao del Sur. Ampatuan town Mayor Rasul Sangki said the rescued residents were from the villages of Malatimon, Kapinpilan and…",
+      "title": "Ombudsman, nagsampa ng kasong graft laban kay Rep. Jojo Ang",
+      "summary": "Isinampa ng Office of the Ombudsman sa Sandiganbayan ang 14 na bilang ng kasong graft laban kay USWAG Ilonggo party-list Rep. James \"Jojo\" Ang Jr. dahil sa umano'y ugnayan nito sa isang construction firm.",
       "provenance": "auto",
-      "matchedOn": "Maguindanao del Sur",
+      "matchedOn": "Ombudsman",
       "sources": [
         {
-          "outlet": "Inquirer.net",
-          "url": "https://newsinfo.inquirer.net/2270238/maguindanao-del-sur-lgus-rescue-civilians-trapped-by-floods"
-        }
-      ]
-    },
-    {
-      "id": "auto-fnqj2n",
-      "place": "gaz:orimindoro",
-      "category": "politics",
-      "date": "2026-07-25",
-      "title": "Oriental Mindoro cops tighten security ahead of Marcos’ Sona",
-      "summary": "CALAPAN CITY, Oriental Mindoro — The Oriental Mindoro Police Provincial Office (OrMin PPO) has heightened security measures across the province ahead of President Ferdinand Marcos Jr.’s State of the Nation Address (Sona) on Monday, July 27. In a statement, the police office said provincial director Col. Edison Revita…",
-      "provenance": "auto",
-      "matchedOn": "Oriental Mindoro",
-      "sources": [
-        {
-          "outlet": "Inquirer.net",
-          "url": "https://newsinfo.inquirer.net/2270270/oriental-mindoro-cops-tighten-security-ahead-of-marcos-sona"
+          "outlet": "GMA News",
+          "url": "https://www.gmanetwork.com/news/balitambayan/balita/996135/ombudsman-nagsampa-ng-kasong-graft-laban-kay-rep-jojo-ang/story/"
         }
       ]
     },
@@ -783,18 +751,18 @@
       ]
     },
     {
-      "id": "auto-ljbnlx",
-      "place": "gaz:caloocan",
+      "id": "auto-lodil3",
+      "place": "gaz:subic",
       "category": "politics",
       "date": "2026-07-25",
-      "title": "Senior citizen bloodied as robber stabs her multiple times inside Caloocan home",
-      "summary": "A 69-year-old woman was found bloodied after a robber entered her house in Caloocan City and stabbed her repeatedly.",
+      "title": "BOC blocks US e-waste shipment from entering Subic port",
+      "summary": "SUBIC BAY FREEPORT — Nearly a month after environmental groups revealed that suspected electronic waste (e-waste) and one container of plastic waste from the United States (US) have reached this freeport since March, authorities prevented three container vans carrying alleged US e-waste from being unloaded at the Port…",
       "provenance": "auto",
-      "matchedOn": "Caloocan",
+      "matchedOn": "Subic",
       "sources": [
         {
-          "outlet": "GMA News",
-          "url": "https://www.gmanetwork.com/news/topstories/metro/996102/senior-citizen-stabbed-robbery-caloocan/story/"
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270372/boc-blocks-us-e-waste-shipment-from-entering-subic-port"
         }
       ]
     },
@@ -827,22 +795,6 @@
         {
           "outlet": "GMA News",
           "url": "https://www.gmanetwork.com/news/topstories/nation/996130/ombudsman-remulla-slams-telcos-ntc-over-slow-internet-speeds-in-ph/story/"
-        }
-      ]
-    },
-    {
-      "id": "auto-x3bvtv",
-      "place": "gaz:sultankudarat",
-      "category": "disaster",
-      "date": "2026-07-25",
-      "title": "Ombudsman files graft charges vs. lawmakers linked to flood control mess",
-      "summary": "The Ombudsman has filed 14 counts of graft charges against USWAG Ilonggo Partylist Representative James Ang Jr. while former Sultan Kudarat 2nd District Rep. Arnulfo Go and three others face two counts of graft, and two counts of malversation charges.",
-      "provenance": "auto",
-      "matchedOn": "Sultan Kudarat",
-      "sources": [
-        {
-          "outlet": "GMA News",
-          "url": "https://www.gmanetwork.com/news/topstories/nation/996114/ombudsman-files-graft-charges-vs-lawmakers-linked-to-flood-control-mess/story/"
         }
       ]
     },
@@ -1007,18 +959,82 @@
       ]
     },
     {
-      "id": "auto-4rjf9",
-      "place": "gaz:wps",
-      "category": "wps",
-      "date": "2026-07-24",
-      "title": "LGUs play key role in West Philippine Sea defense --DILG",
-      "summary": "Local government units (LGU) play a key role in upholding sovereignty in the West Philippine Sea (WPS), according to the Department of the Interior and Local Government (DILG).",
+      "id": "auto-1kegil0",
+      "place": "gaz:cotabatocity",
+      "category": "justice",
+      "date": "2026-07-25",
+      "title": "P2.8-M smuggled cigarettes seized in Cotabato",
+      "summary": "COTABATO CITY — Police arrested two men and seized an estimated P2.8 million worth of suspected smuggled cigarettes during a checkpoint operation in Midsayap, Cotabato, authorities said. The suspects, each driving a Toyota HiAce van, were flagged down by joint operatives of the Cotabato Highway Patrol Team and the…",
       "provenance": "auto",
-      "matchedOn": "West Philippine Sea",
+      "matchedOn": "Cotabato City",
+      "sources": [
+        {
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270247/p2-8-m-smuggled-cigarettes-seized-in-cotabato"
+        }
+      ]
+    },
+    {
+      "id": "auto-1l6ildp",
+      "place": "gaz:subic",
+      "category": "politics",
+      "date": "2026-07-25",
+      "title": "PCG traces Subic pollutant to port terminal drain",
+      "summary": "SUBIC BAY FREEPORT — While the Subic Bay Metropolitan Authority (SBMA) awaits laboratory results from water samples collected after a foul-smelling substance surfaced off a beach resort last week, the Philippine Coast Guard (PCG) said Saturday (July 25) it had identified the pollutant as leachate and traced its…",
+      "provenance": "auto",
+      "matchedOn": "Subic",
+      "sources": [
+        {
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270243/pcg-traces-subic-pollutant-to-port-terminal-drain"
+        }
+      ]
+    },
+    {
+      "id": "auto-9srjj8",
+      "place": "gaz:maguindanao",
+      "category": "disaster",
+      "date": "2026-07-25",
+      "title": "Maguindanao del Sur LGUs rescue civilians trapped by floods",
+      "summary": "COTABATO CITY — About 100 families have been safely rescued by the disaster responders after they were trapped by floods triggered by heavy downpour on Friday, July 24, in Ampatuan, Maguindanao del Sur. Ampatuan town Mayor Rasul Sangki said the rescued residents were from the villages of Malatimon, Kapinpilan and…",
+      "provenance": "auto",
+      "matchedOn": "Maguindanao del Sur",
+      "sources": [
+        {
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270238/maguindanao-del-sur-lgus-rescue-civilians-trapped-by-floods"
+        }
+      ]
+    },
+    {
+      "id": "auto-fnqj2n",
+      "place": "gaz:orimindoro",
+      "category": "politics",
+      "date": "2026-07-25",
+      "title": "Oriental Mindoro cops tighten security ahead of Marcos’ Sona",
+      "summary": "CALAPAN CITY, Oriental Mindoro — The Oriental Mindoro Police Provincial Office (OrMin PPO) has heightened security measures across the province ahead of President Ferdinand Marcos Jr.’s State of the Nation Address (Sona) on Monday, July 27. In a statement, the police office said provincial director Col. Edison Revita…",
+      "provenance": "auto",
+      "matchedOn": "Oriental Mindoro",
+      "sources": [
+        {
+          "outlet": "Inquirer.net",
+          "url": "https://newsinfo.inquirer.net/2270270/oriental-mindoro-cops-tighten-security-ahead-of-marcos-sona"
+        }
+      ]
+    },
+    {
+      "id": "auto-ljbnlx",
+      "place": "gaz:caloocan",
+      "category": "politics",
+      "date": "2026-07-25",
+      "title": "Senior citizen bloodied as robber stabs her multiple times inside Caloocan home",
+      "summary": "A 69-year-old woman was found bloodied after a robber entered her house in Caloocan City and stabbed her repeatedly.",
+      "provenance": "auto",
+      "matchedOn": "Caloocan",
       "sources": [
         {
           "outlet": "GMA News",
-          "url": "https://www.gmanetwork.com/news/topstories/nation/996067/lgus-play-key-role-in-west-philippine-sea-defense-dilg/story/"
+          "url": "https://www.gmanetwork.com/news/topstories/metro/996102/senior-citizen-stabbed-robbery-caloocan/story/"
         }
       ]
     },
@@ -1499,6 +1515,22 @@
         {
           "outlet": "Panay News",
           "url": "https://www.panaynews.net/skilled-rescuers-scarce-western-visayas-vulnerable-to-building-collapses-p3-m-specialized-training-beyond-reach-of-many-lgus/"
+        }
+      ]
+    },
+    {
+      "id": "auto-4rjf9",
+      "place": "gaz:wps",
+      "category": "wps",
+      "date": "2026-07-24",
+      "title": "LGUs play key role in West Philippine Sea defense --DILG",
+      "summary": "Local government units (LGU) play a key role in upholding sovereignty in the West Philippine Sea (WPS), according to the Department of the Interior and Local Government (DILG).",
+      "provenance": "auto",
+      "matchedOn": "West Philippine Sea",
+      "sources": [
+        {
+          "outlet": "GMA News",
+          "url": "https://www.gmanetwork.com/news/topstories/nation/996067/lgus-play-key-role-in-west-philippine-sea-defense-dilg/story/"
         }
       ]
     },

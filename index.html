@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#070b16" />
-  <title>Pinas 2026 — The Year in News, Mapped</title>
-  <meta name="description" content="A live map of the Philippines where the landmarks are verified 2026 news stories, refreshed from credible newsrooms." />
+  <title>Pinas 2026 — Your credible, 24/7 guide to the latest local news</title>
+  <meta name="description" content="Your credible, 24/7 guide to the latest local news. A live map of the Philippines where the landmarks are news stories, refreshed around the clock from established newsrooms." />
+  <meta name="author" content="Benedict de Jesus" />
+  <meta property="og:title" content="Pinas 2026" />
+  <meta property="og:description" content="Your credible, 24/7 guide to the latest local news." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
@@ -38,9 +41,10 @@
       </svg>
       <div class="brand-text">
         <h1>PINAS <span>2026</span></h1>
+        <p class="tagline">Your credible, 24/7 guide to the latest local news</p>
         <p class="brand-sub">
           <span class="live-dot" id="liveDot"></span>
-          <span id="brandSub">Loading the year in news…</span>
+          <span id="brandSub">Loading the latest news…</span>
         </p>
       </div>
       <button class="about-btn" id="aboutBtn" aria-label="About this map">ⓘ</button>
@@ -68,9 +72,16 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
       <button class="modal-close" id="aboutClose" aria-label="Close">✕</button>
       <h2 id="aboutTitle">About this map</h2>
+      <p class="about-tagline">Your credible, 24/7 guide to the latest local news.</p>
       <p><strong>Pinas 2026</strong> replaces place labels with the stories that made them matter. Every glowing
         marker is a news event — tap one to read a summary and jump to the original reporting. Markers are
         coloured by how fresh the story is, so the map shows you where the country is loudest right now.</p>
+
+      <h3>A rolling one-month window</h3>
+      <p>This is a guide to what's happening <em>now</em>, not an archive. The map holds the last
+        <strong>31 days</strong> of news — browse it by <strong>Today</strong>, <strong>This week</strong>, or
+        <strong>This month</strong>. Older stories roll off automatically, which keeps the map fast and always
+        current.</p>
 
       <h3>Where the news comes from</h3>
       <p>Stories arrive two ways, and the map always tells you which:</p>
@@ -90,6 +101,14 @@
       <h3>Photos</h3>
       <p>Marker photos are representative images of the place or subject, loaded live from Wikipedia/Wikimedia.
         For news photography, follow the source links to the original articles.</p>
+
+      <div class="author-card">
+        <div class="author-avatar">BD</div>
+        <div class="author-meta">
+          <strong>Benedict de Jesus</strong>
+          <span>Author &amp; Developer</span>
+        </div>
+      </div>
       <p class="modal-foot">Built with Leaflet · Basemap © OpenStreetMap contributors, © CARTO</p>
     </div>
   </div>
@@ -98,7 +117,8 @@
     <div class="intro-mark">
       <div class="intro-sun"></div>
       <p>PINAS 2026</p>
-      <small>Plotting the latest stories…</small>
+      <small>Your credible, 24/7 guide to the latest local news</small>
+      <em class="intro-by">by Benedict de Jesus</em>
     </div>
   </div>
 
