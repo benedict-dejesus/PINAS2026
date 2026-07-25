@@ -1,6 +1,6 @@
 # Pinas 2026 🇵🇭
 
-### Your credible, 24/7 guide to the latest local news
+### Your 24/7 distributor of credible local news
 
 **A live map of the Philippines where the landmarks are the news.**
 

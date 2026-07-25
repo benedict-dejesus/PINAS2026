@@ -1,6 +1,6 @@
 # Setting up auto-updating news on GitHub
 
-*Pinas 2026 — your credible, 24/7 guide to the latest local news.*
+*Pinas 2026 — your 24/7 distributor of credible local news.*
 *By Benedict de Jesus, Author & Developer.*
 
 This guide takes **Pinas 2026** from a folder on your laptop to a live site that
