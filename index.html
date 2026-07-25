@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#070b16" />
   <title>Pinas 2026 — The Year in News, Mapped</title>
-  <meta name="description" content="An interactive map of the Philippines where the landmarks are verified, trending 2026 news stories." />
+  <meta name="description" content="A live map of the Philippines where the landmarks are verified 2026 news stories, refreshed from credible newsrooms." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
@@ -15,6 +15,7 @@
 </head>
 <body>
   <div id="map" aria-label="Map of the Philippines with news markers"></div>
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="map-vignette" aria-hidden="true"></div>
 
   <!-- Floating header -->
@@ -37,11 +38,15 @@
       </svg>
       <div class="brand-text">
         <h1>PINAS <span>2026</span></h1>
-        <p id="brandSub">The year in news, mapped</p>
+        <p class="brand-sub">
+          <span class="live-dot" id="liveDot"></span>
+          <span id="brandSub">Loading the year in news…</span>
+        </p>
       </div>
       <button class="about-btn" id="aboutBtn" aria-label="About this map">ⓘ</button>
+      <div class="spark" id="spark" role="img" aria-label="Story activity over the last 30 days"></div>
     </div>
-    <nav class="filters" id="filters" aria-label="Filter news by category"></nav>
+    <nav class="filters" id="filters" aria-label="Filter news by time period"></nav>
   </header>
 
   <!-- Story sheet (bottom sheet on mobile, side panel on desktop) -->
@@ -53,6 +58,7 @@
 
   <!-- Floating action buttons (after the sheet so CSS can react to its state) -->
   <div class="fabs" aria-label="Map actions">
+    <button class="fab fab-primary" id="fabLatest" title="Latest stories" aria-label="Latest stories">📰</button>
     <button class="fab" id="fabShuffle" title="Surprise me — jump to a random story" aria-label="Random story">🎲</button>
     <button class="fab" id="fabReset" title="Reset view" aria-label="Reset view">🧭</button>
   </div>
@@ -62,12 +68,25 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
       <button class="modal-close" id="aboutClose" aria-label="Close">✕</button>
       <h2 id="aboutTitle">About this map</h2>
-      <p><strong>Pinas 2026</strong> replaces place labels with the stories that made them matter. Each glowing
-        marker is a verified news event from 2026 — tap one to read a summary and jump to the original reporting.</p>
-      <h3>Verification</h3>
-      <p>Every story was checked against the reputable outlets linked inside it (Philippine dailies, wire services,
-        official bodies like the ICC and PHIVOLCS-adjacent monitors, and press-freedom organizations). Nothing on this
-        map is unsourced; dates reflect the events as reported. Data snapshot: <strong>July 22, 2026</strong>.</p>
+      <p><strong>Pinas 2026</strong> replaces place labels with the stories that made them matter. Every glowing
+        marker is a news event — tap one to read a summary and jump to the original reporting. Markers are
+        coloured by how fresh the story is, so the map shows you where the country is loudest right now.</p>
+
+      <h3>Where the news comes from</h3>
+      <p>Stories arrive two ways, and the map always tells you which:</p>
+      <ul class="about-list">
+        <li><span class="prov-badge curated">✔ Verified</span> Hand-researched and cross-checked against multiple
+          outlets, with a written summary.</li>
+        <li><span class="prov-badge auto">◈ Auto</span> Pulled automatically every few hours from an allowlist of
+          established Philippine newsrooms. The headline and summary are the outlet's own words — never rewritten,
+          never generated — and always link back to the original article.</li>
+      </ul>
+      <p class="about-note">Automated stories are only placed on the map when the report clearly names a Philippine
+        location. If a location can't be determined, the story is skipped rather than guessed.</p>
+
+      <h3>Freshness</h3>
+      <p id="aboutFresh">Checking…</p>
+
       <h3>Photos</h3>
       <p>Marker photos are representative images of the place or subject, loaded live from Wikipedia/Wikimedia.
         For news photography, follow the source links to the original articles.</p>
@@ -79,7 +98,7 @@
     <div class="intro-mark">
       <div class="intro-sun"></div>
       <p>PINAS 2026</p>
-      <small>Plotting verified stories…</small>
+      <small>Plotting the latest stories…</small>
     </div>
   </div>
 

@@ -1,0 +1,100 @@
+# PINAS 2026 — scheduled news refresh + GitHub Pages deploy.
+#
+# Ingest and deploy live in ONE workflow on purpose: commits pushed with the
+# built-in GITHUB_TOKEN do not trigger other workflows, so a separate deploy
+# workflow listening for `push` would never fire after a scheduled refresh.
+name: Update news & deploy
+
+on:
+  schedule:
+    # Every 6 hours. Cron on GitHub is always UTC; the Philippines is UTC+8,
+    # so these land ~07:17, 13:17, 19:17, 01:17 PHT.
+    - cron: "17 23,5,11,17 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Fetch and report only — do not write or commit"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # push the refreshed data file
+  pages: write      # publish to GitHub Pages
+  id-token: write   # required by deploy-pages
+
+# Never let two refreshes race each other onto the same branch.
+concurrency:
+  group: pinas2026-update
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    name: Fetch verified news
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Fetch news from allowlisted sources
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            node scripts/fetch-news.mjs --dry-run | tee ingest.log
+          else
+            node scripts/fetch-news.mjs | tee ingest.log
+          fi
+
+      - name: Publish run summary
+        if: always()
+        run: |
+          {
+            echo "### PINAS 2026 news refresh"
+            echo ""
+            echo '```'
+            cat ingest.log || echo "no log produced"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit refreshed data
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          if [ -z "$(git status --porcelain data/auto-news.json)" ]; then
+            echo "No story changes — nothing to commit."
+            exit 0
+          fi
+          git config user.name "pinas2026-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/auto-news.json
+          git commit -m "data: refresh auto-ingested news ($(date -u '+%Y-%m-%d %H:%MZ'))"
+          git push
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: ingest
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository (including any fresh data commit)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

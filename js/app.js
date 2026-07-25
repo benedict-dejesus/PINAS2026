@@ -16,16 +16,65 @@
 
   function init() {
     const PH_BOUNDS = L.latLngBounds([4.2, 114.0], [21.5, 127.6]);
-    const CLUSTER_PX = 52; // markers closer than this (in px) merge into a cluster
+    const CLUSTER_PX = 54;
+    const DAY_MS = 864e5;
+
+    /* ————————————————— time tiers ————————————————— */
+    // Exclusive tiers drive marker colour and pulse speed.
+    const TIERS = [
+      { id: "today",   label: "Today",       maxDays: 0,        color: "#ff2d6f", pulse: "1.3s" },
+      { id: "week",    label: "This week",   maxDays: 7,        color: "#fcd116", pulse: "2.1s" },
+      { id: "month",   label: "This month",  maxDays: 31,       color: "#38bdf8", pulse: "2.9s" },
+      { id: "quarter", label: "3 months",    maxDays: 92,       color: "#a78bfa", pulse: "3.7s" },
+      { id: "earlier", label: "Earlier",     maxDays: Infinity, color: "#6b7a99", pulse: "4.6s" },
+    ];
+    // Filters are cumulative ("this week" includes today), which is how people
+    // actually think about recency. "Earlier" is the only exclusive one.
+    const FILTERS = [
+      { id: "all",     label: "All stories", color: "#e2e8f0", test: () => true },
+      { id: "today",   label: "Today",       color: "#ff2d6f", test: (d) => d <= 0 },
+      { id: "week",    label: "This week",   color: "#fcd116", test: (d) => d <= 7 },
+      { id: "month",   label: "This month",  color: "#38bdf8", test: (d) => d <= 31 },
+      { id: "quarter", label: "3 months",    color: "#a78bfa", test: (d) => d <= 92 },
+      { id: "earlier", label: "Earlier",     color: "#6b7a99", test: (d) => d > 92 },
+    ];
+
+    const startOfToday = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t; };
+    function daysOld(iso) {
+      const d = new Date(iso + "T00:00:00");
+      if (Number.isNaN(d.getTime())) return 9999;
+      return Math.round((startOfToday() - d) / DAY_MS);
+    }
+    const tierOf = (days) => TIERS.find((t) => days <= t.maxDays) ?? TIERS[TIERS.length - 1];
+
+    function relativeTime(iso) {
+      const d = daysOld(iso);
+      if (d < 0) return d === -1 ? "Tomorrow" : `In ${Math.abs(d)} days`;
+      if (d === 0) return "Today";
+      if (d === 1) return "Yesterday";
+      if (d < 7) return `${d} days ago`;
+      if (d < 14) return "Last week";
+      if (d < 62) return `${Math.round(d / 7)} weeks ago`;
+      return `${Math.round(d / 30)} months ago`;
+    }
     const fmtDate = (iso) =>
       new Date(iso + "T00:00:00").toLocaleDateString("en-PH", {
         year: "numeric", month: "long", day: "numeric",
       });
+    function agoFromTimestamp(ts) {
+      const mins = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+      if (!Number.isFinite(mins) || mins < 0) return "just now";
+      if (mins < 2) return "just now";
+      if (mins < 60) return `${mins} min ago`;
+      const hrs = Math.round(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      return `${Math.round(hrs / 24)}d ago`;
+    }
+    const escapeHtml = (s) =>
+      String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-    // Defensive: ignore stories that point at unknown places or categories.
-    const DATA = NEWS_DATA.filter((s) => PLACES[s.place] && CATEGORIES[s.category]);
-
-    // ————— Map —————
+    /* ————————————————— map ————————————————— */
     const map = L.map("map", {
       zoomControl: false,
       attributionControl: true,
@@ -37,8 +86,6 @@
     });
     map.attributionControl.setPrefix(false);
 
-    // Primary dark basemap, with an automatic fallback to OSM (recolored via
-    // CSS) if the CARTO CDN is unreachable.
     let tileErrors = 0, tilesSwapped = false;
     const primaryTiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       attribution: "© OpenStreetMap contributors © CARTO",
@@ -58,49 +105,110 @@
 
     map.fitBounds(PH_BOUNDS, { padding: [10, 10] });
 
-    // ————— Group stories by place —————
-    const byPlace = new Map();
-    for (const story of DATA) {
-      if (!byPlace.has(story.place)) byPlace.set(story.place, []);
-      byPlace.get(story.place).push(story);
-    }
-    for (const stories of byPlace.values()) {
-      stories.sort((a, b) => b.date.localeCompare(a.date));
+    // Leaflet caches the container size. If the viewport changes (phone
+    // rotation, window resize, browser chrome collapsing) and we don't tell
+    // it, its projection math starts returning NaN and every later flyTo
+    // poisons the map state. Re-measure, then re-cluster for the new width.
+    let resizeTimer;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        map.invalidateSize({ animate: false });
+        renderMarkers();
+      }, 180);
+    };
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    /** Leaflet throws on NaN coordinates, so never hand it an unchecked zoom. */
+    const safeZoom = (value, fallback) => {
+      const z = Number.isFinite(value) ? value : fallback;
+      return Math.min(Math.max(z, map.getMinZoom()), map.getMaxZoom());
+    };
+    const currentZoom = () => (Number.isFinite(map.getZoom()) ? map.getZoom() : 7);
+
+    /* ————————————————— data ————————————————— */
+    const places = { ...PLACES };
+    let stories = [];
+    let byPlace = new Map();
+    let autoMeta = null;
+
+    function normalizeUrl(url) {
+      try {
+        const u = new URL(url);
+        u.hash = ""; u.search = "";
+        return u.toString().replace(/\/$/, "");
+      } catch { return url; }
     }
 
-    document.getElementById("brandSub").textContent =
-      `${DATA.length} verified stories · ${byPlace.size} places`;
+    function rebuildIndex() {
+      byPlace = new Map();
+      for (const story of stories) {
+        if (!places[story.place]) continue;
+        if (!byPlace.has(story.place)) byPlace.set(story.place, []);
+        byPlace.get(story.place).push(story);
+      }
+      for (const list of byPlace.values()) list.sort((a, b) => b.date.localeCompare(a.date));
+    }
 
-    // ————— State —————
+    // Curated stories first — they are the hand-verified backbone.
+    stories = NEWS_DATA
+      .filter((s) => PLACES[s.place] && CATEGORIES[s.category])
+      .map((s) => ({ ...s, provenance: "curated" }));
+    rebuildIndex();
+
+    /* ————————————————— state ————————————————— */
     let selectedPlace = null;
     let activeFilter = "all";
     let introDone = false;
     const hasHover = window.matchMedia("(hover: hover)").matches;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // ————— Place markers (created once, shown/hidden by the clusterer) —————
-    const placeMarkers = new Map(); // placeId -> L.Marker
-    let clusterMarkers = [];
+    const activeTest = () => (FILTERS.find((f) => f.id === activeFilter) ?? FILTERS[0]).test;
+    const storyMatches = (s) => activeTest()(daysOld(s.date));
 
-    function leadCategory(placeId) {
-      const stories = visibleStories(placeId);
-      return CATEGORIES[stories[0].category];
+    function visibleStories(placeId) {
+      const all = byPlace.get(placeId) ?? [];
+      if (activeFilter === "all") return all;
+      const hit = all.filter(storyMatches);
+      return hit.length ? hit : all;
+    }
+    function visiblePlaceIds() {
+      return [...byPlace.keys()].filter(
+        (id) => activeFilter === "all" || byPlace.get(id).some(storyMatches)
+      );
+    }
+    /** Freshest story at a place decides its colour. */
+    function leadTier(placeId) {
+      const list = visibleStories(placeId);
+      return tierOf(Math.min(...list.map((s) => daysOld(s.date))));
     }
 
+    /* ————————————————— markers ————————————————— */
+    const placeMarkers = new Map();
+    let clusterMarkers = [];
+
     function makePlaceMarker(placeId, dropIndex) {
-      const stories = byPlace.get(placeId);
-      const place = PLACES[placeId];
-      const cat = leadCategory(placeId);
-      const count = visibleStories(placeId).length;
+      const place = places[placeId];
+      const list = visibleStories(placeId);
+      const tier = leadTier(placeId);
+      const cat = CATEGORIES[list[0].category] ?? CATEGORIES.politics;
+      const count = list.length;
       const size = count > 1 ? 46 : 38;
-      const delay = introDone ? 0 : 0.45 + dropIndex * 0.06;
+      const delay = introDone ? 0 : 0.4 + dropIndex * 0.045;
+      const isLive = tier.id === "today";
+      const upcoming = daysOld(list[0].date) < 0;
+
       const icon = L.divIcon({
         className: "news-marker",
-        html: `<div class="nm${placeId === selectedPlace ? " selected" : ""}"
-                    style="--c:${cat.color};--delay:${delay}s" data-place="${placeId}">
+        html: `<div class="nm${placeId === selectedPlace ? " selected" : ""}${isLive ? " live" : ""}"
+                    style="--c:${tier.color};--delay:${delay}s;--pulse:${tier.pulse}"
+                    data-place="${escapeHtml(placeId)}">
                  <span class="nm-pulse"></span>
                  <span class="nm-ring"></span>
                  <span class="nm-core">${cat.icon}</span>
                  ${count > 1 ? `<span class="nm-count">${count}</span>` : ""}
+                 ${isLive ? `<span class="nm-live">${upcoming ? "SOON" : "LIVE"}</span>` : ""}
                </div>`,
         iconSize: [size, size],
         iconAnchor: [size / 2, size / 2],
@@ -109,8 +217,8 @@
         .on("click", () => openPlace(placeId));
       if (hasHover) {
         marker.bindTooltip(
-          `${count > 1 ? `${count} stories` : stories[0].title}
-           <small>${place.name} · ${place.area}</small>`,
+          `${count > 1 ? `${count} stories` : escapeHtml(list[0].title)}
+           <small>${escapeHtml(place.name)} · ${relativeTime(list[0].date)}</small>`,
           { className: "nm-tip", direction: "top", offset: [0, -size / 2 - 4], opacity: 1 }
         );
       }
@@ -118,51 +226,54 @@
     }
 
     function makeClusterMarker(memberIds, latlng, dropIndex) {
-      const storyCount = memberIds.reduce((n, id) => n + visibleStories(id).length, 0);
-      const delay = introDone ? 0 : 0.45 + dropIndex * 0.06;
+      const total = memberIds.reduce((n, id) => n + visibleStories(id).length, 0);
+      const tier = TIERS.reduce((best, t) => {
+        const has = memberIds.some((id) => leadTier(id).id === t.id);
+        return best ?? (has ? t : null);
+      }, null) ?? TIERS[1];
+      const delay = introDone ? 0 : 0.4 + dropIndex * 0.045;
       const icon = L.divIcon({
         className: "news-marker",
-        html: `<div class="nm nm-cluster" style="--c:#fcd116;--delay:${delay}s">
+        html: `<div class="nm nm-cluster${tier.id === "today" ? " live" : ""}"
+                    style="--c:${tier.color};--delay:${delay}s;--pulse:${tier.pulse}">
                  <span class="nm-pulse"></span>
-                 <span class="nm-core">${storyCount}</span>
+                 <span class="nm-core">${total}</span>
                </div>`,
-        iconSize: [52, 52],
-        iconAnchor: [26, 26],
+        iconSize: [54, 54],
+        iconAnchor: [27, 27],
       });
       const marker = L.marker(latlng, { icon }).on("click", () => {
-        const bounds = L.latLngBounds(memberIds.map((id) => [PLACES[id].lat, PLACES[id].lng]));
-        // Always make zoom progress: fitting the bounds alone can stall on
-        // small screens when members are only a few hundred meters apart.
+        const bounds = L.latLngBounds(memberIds.map((id) => [places[id].lat, places[id].lng]));
+        // Always make zoom progress: fitting the bounds alone can stall when
+        // members sit only a few hundred metres apart.
         const fitZoom = map.getBoundsZoom(bounds, false, L.point(70, 70));
-        const target = Math.min(Math.max(fitZoom, map.getZoom() + 1.75), 16);
-        map.flyTo(bounds.getCenter(), target, { duration: 0.8 });
+        const stepped = Math.max(
+          Number.isFinite(fitZoom) ? fitZoom : 0,
+          currentZoom() + 1.75
+        );
+        map.flyTo(bounds.getCenter(), safeZoom(Math.min(stepped, 16), 12), { duration: 0.8 });
       });
       if (hasHover) {
         marker.bindTooltip(
-          `${storyCount} stories · ${memberIds.length} places<small>Tap to zoom in</small>`,
+          `${total} stories · ${memberIds.length} places<small>Tap to zoom in</small>`,
           { className: "nm-tip", direction: "top", offset: [0, -30], opacity: 1 }
         );
       }
       return marker;
     }
 
-    function visiblePlaceIds() {
-      return [...byPlace.keys()].filter(
-        (id) => activeFilter === "all" || byPlace.get(id).some((s) => s.category === activeFilter)
-      );
-    }
-
-    // Greedy pixel-distance clustering, recomputed on zoom and filter changes.
     function renderMarkers() {
       for (const m of placeMarkers.values()) map.removeLayer(m);
       for (const m of clusterMarkers) map.removeLayer(m);
       placeMarkers.clear();
       clusterMarkers = [];
 
-      const zoom = map.getZoom();
+      const zoom = currentZoom();
       const clusters = [];
       for (const id of visiblePlaceIds()) {
-        const pt = map.project([PLACES[id].lat, PLACES[id].lng], zoom);
+        const spot = places[id];
+        if (!Number.isFinite(spot?.lat) || !Number.isFinite(spot?.lng)) continue;
+        const pt = map.project([spot.lat, spot.lng], zoom);
         let home = null;
         for (const c of clusters) {
           if (c.members.some((m) => m.pt.distanceTo(pt) < CLUSTER_PX)) { home = c; break; }
@@ -170,6 +281,12 @@
         if (home) home.members.push({ id, pt });
         else clusters.push({ members: [{ id, pt }] });
       }
+
+      // Freshest places drop in first so the eye lands on today's news.
+      clusters.sort((a, b) =>
+        Math.min(...a.members.map((m) => daysOld(visibleStories(m.id)[0].date))) -
+        Math.min(...b.members.map((m) => daysOld(visibleStories(m.id)[0].date)))
+      );
 
       let dropIndex = 0;
       for (const c of clusters) {
@@ -190,39 +307,84 @@
     }
 
     map.on("zoomend", renderMarkers);
-    renderMarkers();
-    setTimeout(() => { introDone = true; }, 2200);
+    const markerEl = (placeId) =>
+      placeMarkers.get(placeId)?.getElement()?.querySelector(".nm");
 
-    function markerEl(placeId) {
-      return placeMarkers.get(placeId)?.getElement()?.querySelector(".nm");
-    }
-
-    // ————— Filters —————
+    /* ————————————————— filters ————————————————— */
     const filtersNav = document.getElementById("filters");
-    const filterDefs = [["all", { label: "All stories", color: "#fcd116" }], ...Object.entries(CATEGORIES)];
-    for (const [key, def] of filterDefs) {
-      const count = key === "all" ? DATA.length : DATA.filter((s) => s.category === key).length;
-      const btn = document.createElement("button");
-      btn.className = "chip" + (key === "all" ? " active" : "");
-      btn.style.setProperty("--c", def.color);
-      btn.innerHTML = `<span class="dot"></span>${def.label}<span class="n">${count}</span>`;
-      btn.addEventListener("click", () => setFilter(key, btn));
-      filtersNav.appendChild(btn);
-    }
-
-    function setFilter(key, btn) {
-      activeFilter = key;
-      filtersNav.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
-      btn.classList.add("active");
-      if (selectedPlace && !(key === "all" || byPlace.get(selectedPlace).some((s) => s.category === key))) {
-        closeSheet();
+    function renderFilters() {
+      const counts = Object.fromEntries(
+        FILTERS.map((f) => [f.id, stories.filter((s) => f.test(daysOld(s.date))).length])
+      );
+      filtersNav.innerHTML = "";
+      for (const f of FILTERS) {
+        const btn = document.createElement("button");
+        btn.className = "chip" + (f.id === activeFilter ? " active" : "");
+        btn.style.setProperty("--c", f.color);
+        btn.disabled = counts[f.id] === 0 && f.id !== "all";
+        btn.innerHTML =
+          `<span class="dot"></span>${f.label}<span class="n">${counts[f.id]}</span>`;
+        btn.addEventListener("click", () => setFilter(f.id));
+        filtersNav.appendChild(btn);
       }
+    }
+    function setFilter(id) {
+      activeFilter = id;
+      renderFilters();
+      if (selectedPlace && !byPlace.get(selectedPlace)?.some(storyMatches)) closeSheet();
       renderMarkers();
     }
 
-    // ————— Wikipedia lead images (representative photos, lazy + cached) —————
+    /* ————————————————— header stats & sparkline ————————————————— */
+    function renderHeader() {
+      const sub = document.getElementById("brandSub");
+      const dot = document.getElementById("liveDot");
+      const todayCount = stories.filter((s) => daysOld(s.date) <= 0).length;
+      const bits = [`${stories.length} stories`, `${byPlace.size} places`];
+      if (autoMeta?.generatedAt) bits.push(`updated ${agoFromTimestamp(autoMeta.generatedAt)}`);
+      sub.textContent = bits.join(" · ");
+      dot.classList.toggle("hot", todayCount > 0);
+      dot.title = todayCount > 0 ? `${todayCount} stories today` : "No stories yet today";
+
+      const fresh = document.getElementById("aboutFresh");
+      if (fresh) {
+        fresh.textContent = autoMeta?.generatedAt
+          ? `Automated stories last refreshed ${agoFromTimestamp(autoMeta.generatedAt)} ` +
+            `(${new Date(autoMeta.generatedAt).toLocaleString("en-PH")}). ` +
+            `${autoMeta.counts?.items ?? 0} automated stories are currently on the map, ` +
+            `kept for ${autoMeta.retentionDays ?? 120} days. ` +
+            `Healthy sources this run: ${(autoMeta.sourceHealth ?? []).filter((h) => h.ok).length}` +
+            `/${(autoMeta.sourceHealth ?? []).length}.`
+          : "Showing hand-verified stories only — the automated feed hasn't been loaded yet. " +
+            "Once the GitHub Action runs, fresh stories appear here automatically.";
+      }
+      renderSpark();
+    }
+
+    function renderSpark() {
+      const el = document.getElementById("spark");
+      if (!el) return;
+      const days = 30;
+      const buckets = new Array(days).fill(0);
+      for (const s of stories) {
+        const d = daysOld(s.date);
+        if (d >= 0 && d < days) buckets[days - 1 - d]++;
+      }
+      const peak = Math.max(1, ...buckets);
+      el.innerHTML = buckets
+        .map((n, i) => {
+          const tier = tierOf(days - 1 - i);
+          const h = n === 0 ? 8 : 18 + Math.round((n / peak) * 82);
+          return `<i style="--h:${h}%;--c:${n ? tier.color : "rgba(255,255,255,.13)"};--i:${i}"></i>`;
+        })
+        .join("");
+      el.title = `${buckets.reduce((a, b) => a + b, 0)} stories in the last 30 days`;
+    }
+
+    /* ————————————————— Wikipedia lead images ————————————————— */
     const wikiCache = new Map();
     function wikiImage(title) {
+      if (!title) return Promise.resolve(null);
       if (wikiCache.has(title)) return wikiCache.get(title);
       const promise = fetch(
         `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`
@@ -230,7 +392,6 @@
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
           if (!j || !j.thumbnail) return null;
-          // phone-friendly size: Wikimedia rejects thumbs wider than the original
           const src = j.originalimage && j.originalimage.width > 820
             ? j.thumbnail.source.replace(/\/(\d+)px-/, "/800px-")
             : (j.originalimage?.source ?? j.thumbnail.source);
@@ -241,7 +402,7 @@
       return promise;
     }
 
-    // ————— Sheet —————
+    /* ————————————————— sheet ————————————————— */
     const sheet = document.getElementById("sheet");
     const sheetContent = document.getElementById("sheetContent");
     const isDesktop = () => window.matchMedia("(min-width: 820px)").matches;
@@ -250,7 +411,6 @@
       sheetContent.innerHTML = `<div class="sheet-view">${html}</div>`;
       sheetContent.scrollTop = 0;
     }
-
     function openSheet(state = "peek") {
       sheet.classList.remove("peek", "full");
       sheet.classList.add(isDesktop() ? "full" : state);
@@ -265,106 +425,165 @@
     document.getElementById("sheetClose").addEventListener("click", closeSheet);
 
     function openPlace(placeId, zoomOverride) {
+      const spot = places[placeId];
+      if (!spot || !Number.isFinite(spot.lat) || !Number.isFinite(spot.lng)) return;
       if (selectedPlace) markerEl(selectedPlace)?.classList.remove("selected");
       selectedPlace = placeId;
-      markerEl(placeId)?.classList.add("selected");
+      const el = markerEl(placeId);
+      el?.classList.add("selected");
+      if (el && !reduceMotion) {
+        el.classList.remove("tapped");
+        void el.offsetWidth;
+        el.classList.add("tapped");
+      }
 
-      const place = PLACES[placeId];
-      const zoom = zoomOverride ?? Math.max(map.getZoom(), 8);
+      const place = spot;
+      const zoom = safeZoom(zoomOverride ?? Math.max(currentZoom(), 8), 8);
       let target = L.latLng(place.lat, place.lng);
       if (!isDesktop()) {
-        // shift the map center down so the marker sits above the peeking sheet
         const pt = map.project(target, zoom);
         pt.y += window.innerHeight * 0.22;
         target = map.unproject(pt, zoom);
       }
       map.flyTo(target, zoom, { duration: 0.9 });
 
-      const stories = visibleStories(placeId);
-      if (stories.length === 1) renderStory(stories[0]);
-      else renderPlaceList(placeId, stories);
+      const list = visibleStories(placeId);
+      if (list.length === 1) renderStory(list[0]);
+      else renderPlaceList(placeId, list);
       openSheet("peek");
     }
 
-    function visibleStories(placeId) {
-      const all = byPlace.get(placeId);
-      if (activeFilter === "all") return all;
-      const filtered = all.filter((s) => s.category === activeFilter);
-      return filtered.length ? filtered : all;
+    function provenanceBadge(story) {
+      return story.provenance === "auto"
+        ? `<span class="prov-badge auto" title="Headline pulled automatically from an allowlisted newsroom">◈ Auto</span>`
+        : `<span class="prov-badge curated" title="Hand-researched and cross-checked">✔ Verified</span>`;
     }
 
-    function renderPlaceList(placeId, stories) {
-      const place = PLACES[placeId];
-      setSheetHtml(`
-        <div class="place-head">
-          <h2>${place.name}</h2>
-          <p>${place.area} · ${stories.length} verified stories</p>
-          <span class="hot">⚡ News hotspot</span>
-        </div>
-        ${stories.map((s, i) => {
-          const cat = CATEGORIES[s.category];
-          return `<div class="story-card" style="--c:${cat.color};--d:${i * 0.06}s" data-story="${s.id}">
-            <span class="sc-dot"></span>
-            <div>
-              <h3>${s.title}</h3>
-              <div class="sc-meta">${cat.icon} ${cat.label} · ${fmtDate(s.date)}</div>
-            </div>
-            <span class="sc-arrow">›</span>
-          </div>`;
-        }).join("")}
-      `);
-      sheetContent.querySelectorAll(".story-card").forEach((card) => {
+    function storyCardHtml(story, index, opts = {}) {
+      const cat = CATEGORIES[story.category] ?? CATEGORIES.politics;
+      const tier = tierOf(daysOld(story.date));
+      const place = places[story.place];
+      return `<button class="story-card" style="--c:${tier.color};--d:${index * 0.045}s"
+                      data-story="${escapeHtml(story.id)}">
+        <span class="sc-dot"></span>
+        <span class="sc-body">
+          <span class="sc-title">${escapeHtml(story.title)}</span>
+          <span class="sc-meta">
+            <span class="sc-time">${relativeTime(story.date)}</span>
+            <span class="sc-sep">·</span>${cat.icon} ${cat.label}
+            ${opts.showPlace && place ? `<span class="sc-sep">·</span>📍 ${escapeHtml(place.name)}` : ""}
+          </span>
+        </span>
+        <span class="sc-arrow">›</span>
+      </button>`;
+    }
+
+    function wireCards(root, onPick) {
+      root.querySelectorAll(".story-card").forEach((card) => {
         card.addEventListener("click", () => {
-          const story = DATA.find((s) => s.id === card.dataset.story);
-          renderStory(story, { backTo: placeId });
-          openSheet(sheet.classList.contains("full") ? "full" : "peek");
+          const story = stories.find((s) => s.id === card.dataset.story);
+          if (story) onPick(story);
         });
       });
     }
 
-    function renderStory(story, opts = {}) {
-      const place = PLACES[story.place];
-      const cat = CATEGORIES[story.category];
-      const heroId = `hero-${story.id}`;
+    function renderPlaceList(placeId, list) {
+      const place = places[placeId];
+      const tier = leadTier(placeId);
       setSheetHtml(`
-        ${opts.backTo ? `<button class="back-btn" id="backBtn">‹ ${PLACES[opts.backTo].name}</button>` : ""}
-        <div class="story-hero loading" id="${heroId}" style="--c:${cat.color}">
+        <div class="place-head" style="--c:${tier.color}">
+          <h2>${escapeHtml(place.name)}</h2>
+          <p>${escapeHtml(place.area)} · ${list.length} stories</p>
+          <span class="hot">⚡ News hotspot</span>
+        </div>
+        ${list.map((s, i) => storyCardHtml(s, i)).join("")}
+      `);
+      wireCards(sheetContent, (story) => {
+        renderStory(story, { backTo: placeId });
+        openSheet(sheet.classList.contains("full") ? "full" : "peek");
+      });
+    }
+
+    function renderLatest() {
+      const filter = FILTERS.find((f) => f.id === activeFilter) ?? FILTERS[0];
+      const list = stories
+        .filter((s) => filter.test(daysOld(s.date)))
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, 60);
+      setSheetHtml(`
+        <div class="place-head" style="--c:${filter.color}">
+          <h2>Latest stories</h2>
+          <p>${filter.id === "all" ? "Everything on the map" : filter.label} · ${list.length} shown</p>
+        </div>
+        ${list.length
+          ? list.map((s, i) => storyCardHtml(s, i, { showPlace: true })).join("")
+          : `<p class="empty-note">No stories in this period yet.</p>`}
+      `);
+      wireCards(sheetContent, (story) => {
+        openPlace(story.place, Math.max(currentZoom(), 9));
+        renderStory(story, { backTo: "__latest__" });
+        openSheet(sheet.classList.contains("full") ? "full" : "peek");
+      });
+      openSheet("peek");
+    }
+
+    function renderStory(story, opts = {}) {
+      const place = places[story.place];
+      const cat = CATEGORIES[story.category] ?? CATEGORIES.politics;
+      const tier = tierOf(daysOld(story.date));
+      const heroId = `hero-${story.id}`;
+      const backLabel = opts.backTo === "__latest__"
+        ? "Latest stories"
+        : opts.backTo ? places[opts.backTo]?.name : null;
+
+      setSheetHtml(`
+        ${backLabel ? `<button class="back-btn" id="backBtn">‹ ${escapeHtml(backLabel)}</button>` : ""}
+        <div class="story-hero loading" id="${heroId}" style="--c:${tier.color}">
           <span class="hero-fallback">${cat.icon}</span>
           <div class="hero-grad"></div>
+          <span class="hero-tier" style="--c:${tier.color}">${relativeTime(story.date)}</span>
         </div>
-        <div class="story-meta" style="--c:${cat.color}">
+        <div class="story-meta" style="--c:${tier.color}">
+          ${provenanceBadge(story)}
           <span class="cat-pill">${cat.icon} ${cat.label}</span>
           <span class="story-date">📅 ${fmtDate(story.date)}</span>
-          <span class="story-place">📍 ${place.name}, ${place.area}</span>
+          <span class="story-place">📍 ${escapeHtml(place.name)}, ${escapeHtml(place.area)}</span>
         </div>
-        <h2 class="story-title">${story.title}</h2>
-        <p class="story-summary">${story.summary}</p>
-        <div class="sources-label"><span class="check">✔</span> Verified sources — read the full story</div>
+        <h2 class="story-title">${escapeHtml(story.title)}</h2>
+        <p class="story-summary">${escapeHtml(story.summary)}</p>
+        ${story.provenance === "auto"
+          ? `<p class="auto-note">◈ Summary above is the outlet's own wording, pulled automatically from its
+               news feed. Open the source for the full report.</p>`
+          : ""}
+        <div class="sources-label"><span class="check">✔</span>
+          ${story.provenance === "auto" ? "Source — read the full story" : "Verified sources — read the full story"}
+        </div>
         <div class="source-links">
           ${story.sources.map((src) => {
-            const host = new URL(src.url).hostname.replace("www.", "");
-            return `<a class="source-link" href="${src.url}" target="_blank" rel="noopener noreferrer">
-              <span class="fav">${src.outlet.charAt(0)}</span>
-              <span>${src.outlet}<div class="host">${host}</div></span>
+            let host = src.url;
+            try { host = new URL(src.url).hostname.replace("www.", ""); } catch {}
+            return `<a class="source-link" href="${escapeHtml(src.url)}" target="_blank" rel="noopener noreferrer">
+              <span class="fav">${escapeHtml(src.outlet.charAt(0))}</span>
+              <span class="sl-body">${escapeHtml(src.outlet)}<span class="host">${escapeHtml(host)}</span></span>
               <span class="ext">↗</span>
             </a>`;
           }).join("")}
         </div>
       `);
-      document.getElementById("backBtn")?.addEventListener("click", () =>
-        renderPlaceList(opts.backTo, visibleStories(opts.backTo))
-      );
 
-      // Hand-picked story image if provided, otherwise the wiki lead photo
-      const imageSource = story.image
-        ? Promise.resolve(story.image)
-        : wikiImage(story.wiki);
+      document.getElementById("backBtn")?.addEventListener("click", () => {
+        if (opts.backTo === "__latest__") renderLatest();
+        else renderPlaceList(opts.backTo, visibleStories(opts.backTo));
+      });
+
+      const wikiTitle = story.wiki || place.wiki;
+      const imageSource = story.image ? Promise.resolve(story.image) : wikiImage(wikiTitle);
       imageSource.then((img) => {
         const hero = document.getElementById(heroId);
         if (!hero) return;
         if (!img) { hero.classList.remove("loading"); return; }
         const el = new Image();
-        el.alt = `${story.wiki} — representative photo`;
+        el.alt = `${wikiTitle || place.name} — representative photo`;
         el.onload = () => {
           hero.classList.remove("loading");
           hero.prepend(el);
@@ -387,27 +606,27 @@
       });
     }
 
-    // ————— FABs: reset view + surprise me —————
+    /* ————————————————— FABs ————————————————— */
     document.getElementById("fabReset").addEventListener("click", () => {
       closeSheet();
       map.flyToBounds(PH_BOUNDS, { padding: [10, 10], duration: 1.1 });
     });
+    document.getElementById("fabLatest").addEventListener("click", renderLatest);
     document.getElementById("fabShuffle").addEventListener("click", () => {
-      const pool = DATA.filter((s) => activeFilter === "all" || s.category === activeFilter);
+      const pool = stories.filter(storyMatches);
       const story = pool[Math.floor(Math.random() * pool.length)];
       if (!story) return;
-      openPlace(story.place, Math.max(map.getZoom(), 10));
-      renderStory(story, byPlace.get(story.place).length > 1 ? { backTo: story.place } : {});
+      openPlace(story.place, Math.max(currentZoom(), 10));
+      renderStory(story, (byPlace.get(story.place)?.length ?? 0) > 1 ? { backTo: story.place } : {});
     });
 
-    // ————— Sheet drag (mobile) —————
+    /* ————————————————— sheet drag (mobile) ————————————————— */
     const handle = document.getElementById("sheetHandle");
     let dragStartY = 0, startTranslate = 0, dragging = false;
 
     handle.addEventListener("touchstart", (e) => {
       dragging = true;
       dragStartY = e.touches[0].clientY;
-      // translateY is relative to the sheet's natural (fully visible) position
       const naturalTop = window.innerHeight - sheet.offsetHeight;
       startTranslate = sheet.getBoundingClientRect().top - naturalTop;
       sheet.classList.add("dragging");
@@ -435,7 +654,7 @@
       else closeSheet();
     });
 
-    // ————— About modal —————
+    /* ————————————————— about modal ————————————————— */
     const aboutModal = document.getElementById("aboutModal");
     document.getElementById("aboutBtn").addEventListener("click", () => (aboutModal.hidden = false));
     document.getElementById("aboutClose").addEventListener("click", () => (aboutModal.hidden = true));
@@ -444,9 +663,49 @@
       if (e.key === "Escape") { aboutModal.hidden = true; closeSheet(); }
     });
 
-    // ————— Intro —————
-    // Init succeeded: dismiss the veil once markers have dropped in.
+    /* ————————————————— first paint, then the live feed ————————————————— */
+    renderFilters();
+    renderHeader();
+    renderMarkers();
+    setTimeout(() => { introDone = true; }, 2200);
+
     clearTimeout(window.__veilTimer);
-    setTimeout(() => document.getElementById("introVeil").classList.add("gone"), 1100);
+    setTimeout(() => document.getElementById("introVeil").classList.add("gone"), 1000);
+
+    loadAutoNews();
+
+    async function loadAutoNews() {
+      try {
+        const res = await fetch(`data/auto-news.json?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        if (!payload || !Array.isArray(payload.items)) throw new Error("malformed payload");
+
+        for (const [id, p] of Object.entries(payload.places ?? {})) {
+          if (!places[id]) places[id] = p;
+        }
+        // A curated story always beats an auto copy of the same article.
+        const curatedUrls = new Set(
+          stories.flatMap((s) => (s.sources ?? []).map((x) => normalizeUrl(x.url)))
+        );
+        const fresh = payload.items.filter((item) => {
+          if (!places[item.place] || !item.date || !item.title) return false;
+          if (!Array.isArray(item.sources) || !item.sources.length) return false;
+          return !item.sources.some((x) => curatedUrls.has(normalizeUrl(x.url)));
+        });
+
+        autoMeta = payload;
+        stories = [...stories, ...fresh];
+        rebuildIndex();
+        renderFilters();
+        renderHeader();
+        renderMarkers();
+      } catch (err) {
+        // Expected before the first Action run, or when opened straight from
+        // the filesystem. The curated map is fully usable without it.
+        console.info("Auto news feed unavailable — showing curated stories only.", err.message);
+        renderHeader();
+      }
+    }
   }
 })();
