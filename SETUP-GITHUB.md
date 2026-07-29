@@ -241,13 +241,13 @@ The knobs live at the top of `scripts/fetch-news.mjs`:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `retentionDays` | 31 | How long stories stay on the map before rolling off |
-| `maxItems` | 1800 | Hard cap on stored stories (~50/day × 31 days, with headroom) |
+| `retentionDays` | 7 | How long stories stay on the map before rolling off |
+| `maxItems` | 600 | Hard cap on stored stories (~50/day × 7 days, with headroom) |
 | `maxPerPlacePerDay` | 3 | Stops one busy city burying everywhere else |
 | `perSourceLimit` | 25 | Newest N items read per feed per run |
 
 **Keep `retentionDays` and the UI in sync.** The app enforces its own cutoff via
-`MAX_AGE_DAYS` in `js/app.js` (also 31). If you widen one, widen the other —
+`MAX_AGE_DAYS` in `js/app.js` (also 7). If you widen one, widen the other —
 otherwise the ingest stores stories the interface will never display, or the
 interface promises a window the data doesn't cover.
 
@@ -258,11 +258,11 @@ Each run of the workflow:
 
 1. restores the previous archive from the **Actions cache**,
 2. merges in whatever the feeds are carrying now,
-3. drops anything older than 31 days,
+3. drops anything older than 7 days,
 4. ships the result inside the Pages artifact, and
 5. saves the updated archive back to the cache for next time.
 
-The cache is what lets the map hold a month of stories when RSS feeds only expose
+The cache is what lets the map hold a full week of stories when RSS feeds only expose
 the last few days. If it's ever evicted (GitHub clears caches unused for 7 days,
 which won't happen while the schedule runs every 6 hours), the next run simply
 rebuilds from the feeds and starts accumulating again — nothing breaks.
@@ -280,9 +280,9 @@ Without it the map still runs — it just shows your hand-verified stories only.
 
 ### Why the map size stays flat
 
-Because stories roll off after a month, the data file reaches a steady state
-instead of growing forever: roughly 1,000–1,500 stories, about 1 MB raw and
-~250 KB gzipped over the wire. It will look much the same in December as it does
+Because stories roll off after a week, the data file reaches a steady state
+instead of growing forever: roughly 250–350 stories, about 300 KB raw and
+~80 KB gzipped over the wire. It will look much the same in December as it does
 today, with no maintenance from you.
 
 ### Add your own verified story

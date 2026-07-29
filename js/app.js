@@ -21,23 +21,23 @@
     const LIST_LIMIT = 60; // max story cards rendered into the sheet at once
 
     /* ————————————————— time tiers ————————————————— */
-    // This is a guide to the latest news, so the map holds one month and no
+    // This is a guide to the latest news, so the map holds one week and no
     // more. Anything older is dropped rather than shown — which also means the
     // story count plateaus instead of growing forever.
-    const MAX_AGE_DAYS = 31;
+    const MAX_AGE_DAYS = 7;
 
     // Exclusive tiers drive marker colour and pulse speed.
     const TIERS = [
-      { id: "today", label: "Today",      maxDays: 0,        color: "#ff2d6f", pulse: "1.3s" },
-      { id: "week",  label: "This week",  maxDays: 7,        color: "#fcd116", pulse: "2.1s" },
-      { id: "month", label: "This month", maxDays: Infinity, color: "#38bdf8", pulse: "2.9s" },
+      { id: "today", label: "Today",       maxDays: 0,        color: "#ff2d6f", pulse: "1.3s" },
+      { id: "days3", label: "Last 3 days", maxDays: 3,        color: "#fcd116", pulse: "2.1s" },
+      { id: "week",  label: "This week",   maxDays: Infinity, color: "#38bdf8", pulse: "2.9s" },
     ];
     // Cumulative, which is how people actually think about recency:
-    // "this week" includes today, "this month" includes both.
+    // "last 3 days" includes today, "this week" includes both.
     const FILTERS = [
-      { id: "today", label: "Today",      color: "#ff2d6f", test: (d) => d <= 0 },
-      { id: "week",  label: "This week",  color: "#fcd116", test: (d) => d <= 7 },
-      { id: "month", label: "This month", color: "#38bdf8", test: (d) => d <= MAX_AGE_DAYS },
+      { id: "today", label: "Today",       color: "#ff2d6f", test: (d) => d <= 0 },
+      { id: "days3", label: "Last 3 days", color: "#fcd116", test: (d) => d <= 3 },
+      { id: "week",  label: "This week",   color: "#38bdf8", test: (d) => d <= MAX_AGE_DAYS },
     ];
 
     // daysOld() runs tens of thousands of times per render once the map is
@@ -170,7 +170,7 @@
     }
 
     // Curated stories first — they are the hand-verified backbone. Older ones
-    // stay in news-data.js but sit outside the one-month window, so they are
+    // stay in news-data.js but sit outside the one-week window, so they are
     // not shown; widen MAX_AGE_DAYS to bring them back.
     stories = NEWS_DATA
       .filter((s) => PLACES[s.place] && CATEGORIES[s.category] && withinWindow(s))
@@ -179,7 +179,7 @@
 
     /* ————————————————— state ————————————————— */
     let selectedPlace = null;
-    let activeFilter = "month"; // widest view — everything the map holds
+    let activeFilter = "week"; // widest view — everything the map holds
     let introDone = false;
     const hasHover = window.matchMedia("(hover: hover)").matches;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -370,7 +370,10 @@
           ? `Automated stories last refreshed ${agoFromTimestamp(autoMeta.generatedAt)} ` +
             `(${new Date(autoMeta.generatedAt).toLocaleString("en-PH")}). ` +
             `${autoMeta.counts?.items ?? 0} automated stories are currently on the map, ` +
-            `kept for ${autoMeta.retentionDays ?? 120} days. ` +
+            // The UI clips to MAX_AGE_DAYS no matter what the file was built
+            // with, so quote the window actually enforced — a data file cached
+            // before a window change would otherwise advertise the old one.
+            `kept for ${Math.min(autoMeta.retentionDays ?? MAX_AGE_DAYS, MAX_AGE_DAYS)} days. ` +
             `Healthy sources this run: ${(autoMeta.sourceHealth ?? []).filter((h) => h.ok).length}` +
             `/${(autoMeta.sourceHealth ?? []).length}.`
           : "Showing hand-verified stories only — the automated feed hasn't been loaded yet. " +
@@ -382,7 +385,9 @@
     function renderSpark() {
       const el = document.getElementById("spark");
       if (!el) return;
-      const days = 30;
+      // One bar per day the window can hold, inclusive of today — otherwise
+      // the tail of the sparkline is permanently empty.
+      const days = MAX_AGE_DAYS + 1;
       const buckets = new Array(days).fill(0);
       for (const s of stories) {
         const d = daysOld(s.date);
@@ -396,7 +401,7 @@
           return `<i style="--h:${h}%;--c:${n ? tier.color : "rgba(255,255,255,.13)"};--i:${i}"></i>`;
         })
         .join("");
-      el.title = `${buckets.reduce((a, b) => a + b, 0)} stories in the last 30 days`;
+      el.title = `${buckets.reduce((a, b) => a + b, 0)} stories in the last ${days} days`;
     }
 
     /* ————————————————— Wikipedia lead images ————————————————— */

@@ -15,8 +15,8 @@ Built as a static site: no backend, no build step, no dependencies to install.
 
 ## What it does
 
-- **Always current.** The map holds a rolling **31-day window**. Filter by Today,
-  This week, or This month; older stories roll off automatically, so the map stays
+- **Always current.** The map holds a rolling **7-day window**. Filter by Today,
+  Last 3 days, or This week; older stories roll off automatically, so the map stays
   fast and never becomes a stale archive.
 - **Freshness at a glance.** Marker colour and pulse speed follow the same scale —
   today's news glows hot pink and beats fastest.
@@ -91,7 +91,7 @@ Add a place by extending `PLACES` in the same file with `{ name, area, lat, lng 
 
 ---
 
-> **Note:** stories older than the 31-day window stay in the file but aren't
+> **Note:** stories older than the 7-day window stay in the file but aren't
 > shown. Widen `MAX_AGE_DAYS` in `js/app.js` to bring them back.
 
 ---

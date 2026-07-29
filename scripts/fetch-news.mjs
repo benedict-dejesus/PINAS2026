@@ -33,13 +33,14 @@ const ROOT = join(__dirname, "..");
 const OUT_FILE = join(ROOT, "data", "auto-news.json");
 
 const CONFIG = {
-  // The map is a guide to the LATEST news: Today / This week / This month.
-  // Anything past a month is dropped, which also keeps the payload flat
+  // The map is a guide to the LATEST news: Today / Last 3 days / This week.
+  // Anything past a week is dropped, which also keeps the payload flat
   // forever instead of growing without bound.
-  retentionDays: 31,
-  // ~50 placed stories/day × 31 days, with headroom. At ~880 bytes each this
-  // is ~1.4 MB raw, but gzip (which GitHub Pages applies) takes it to ~350 KB.
-  maxItems: 1800,
+  // Must stay in sync with MAX_AGE_DAYS in js/app.js.
+  retentionDays: 7,
+  // ~50 placed stories/day × 7 days, with headroom. At ~880 bytes each this
+  // is ~530 KB raw, but gzip (which GitHub Pages applies) takes it to ~130 KB.
+  maxItems: 600,
   maxPerPlacePerDay: 3, // stops one busy city from burying the rest of the map
   maxSummaryChars: 320,
   perSourceLimit: 25,   // newest N items per feed per run
