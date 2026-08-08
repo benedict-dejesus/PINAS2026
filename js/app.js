@@ -366,9 +366,13 @@
 
       const fresh = document.getElementById("aboutFresh");
       if (fresh) {
+        const perRun = autoMeta?.topPerRun;
         fresh.textContent = autoMeta?.generatedAt
           ? `Automated stories last refreshed ${agoFromTimestamp(autoMeta.generatedAt)} ` +
             `(${new Date(autoMeta.generatedAt).toLocaleString("en-PH")}). ` +
+            // Older data files predate the top-N policy and carry no topPerRun,
+            // so only describe the cadence when the file actually states it.
+            (perRun ? `Each refresh adds the top ${perRun} headlines, four times a day. ` : "") +
             `${autoMeta.counts?.items ?? 0} automated stories are currently on the map, ` +
             // The UI clips to MAX_AGE_DAYS no matter what the file was built
             // with, so quote the window actually enforced — a data file cached

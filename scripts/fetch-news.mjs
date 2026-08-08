@@ -5,6 +5,12 @@
  * Pulls headlines from the credible-source allowlist in sources.mjs, places
  * each story using gazetteer.mjs, and writes data/auto-news.json.
  *
+ * Volume policy (the shape of the whole archive):
+ *   • A harvest keeps only the TOP 3 headlines it finds, and harvests run at
+ *     most once every 6 hours — 12 stories a day, 84 in a week.
+ *   • Anything older than 7 days is deleted on every run, harvest or not.
+ *   So the file converges on ~84 stories and stays there.
+ *
  * Design rules that protect the map's credibility:
  *   • Allowlist only. No source outside sources.mjs is ever read.
  *   • No invented text. Titles and summaries are the outlet's own words,
@@ -13,12 +19,13 @@
  *   • Every item keeps a direct link to the original article.
  *   • Auto items are labelled provenance:"auto" so the UI can distinguish
  *     them from hand-verified curated stories.
- *   • A run that reaches zero sources writes nothing, so a network outage
- *     can never blank the map.
+ *   • A run that reaches zero sources adds nothing, so a network outage can
+ *     never blank the map.
  *
  * Usage:
- *   node scripts/fetch-news.mjs            # fetch, merge, write if changed
+ *   node scripts/fetch-news.mjs            # prune, harvest if due, write if changed
  *   node scripts/fetch-news.mjs --dry-run  # report only, never write
+ *   node scripts/fetch-news.mjs --force    # harvest even if the 6h gap hasn't elapsed
  *   node scripts/fetch-news.mjs --verbose  # per-item decisions
  */
 
@@ -34,16 +41,24 @@ const OUT_FILE = join(ROOT, "data", "auto-news.json");
 
 const CONFIG = {
   // The map is a guide to the LATEST news: Today / Last 3 days / This week.
-  // Anything past a week is dropped, which also keeps the payload flat
+  // Anything past a week is deleted, which also keeps the payload flat
   // forever instead of growing without bound.
   // Must stay in sync with MAX_AGE_DAYS in js/app.js.
   retentionDays: 7,
-  // ~50 placed stories/day × 7 days, with headroom. At ~880 bytes each this
-  // is ~530 KB raw, but gzip (which GitHub Pages applies) takes it to ~130 KB.
-  maxItems: 600,
+  // Only the three most prominent new headlines survive a harvest.
+  topPerRun: 3,
+  // Harvest cadence, enforced here rather than trusted to the scheduler: the
+  // workflow also runs on every push, and without this gate each push would
+  // slip three extra stories into the archive. Slightly under 6h so a cron
+  // run that fires a few minutes early is still treated as due.
+  minHoursBetweenHarvests: 5.5,
+  // 3 × 4 runs × 7 days = 84, plus headroom for clock/timezone edges.
+  maxItems: 100,
   maxPerPlacePerDay: 3, // stops one busy city from burying the rest of the map
   maxSummaryChars: 320,
-  perSourceLimit: 25,   // newest N items per feed per run
+  // Only the top of each feed is read — feed order is the outlet's own
+  // judgement of prominence, and that is what "top headline" means here.
+  perSourceLimit: 10,
   fetchTimeoutMs: 20000,
   retries: 2,
   userAgent: "Mozilla/5.0 (compatible; Pinas2026Bot/1.0; +https://github.com/benedict-dejesus/PINAS2026)",
@@ -52,6 +67,7 @@ const CONFIG = {
 const argv = new Set(process.argv.slice(2));
 const DRY_RUN = argv.has("--dry-run");
 const VERBOSE = argv.has("--verbose");
+const FORCE = argv.has("--force");
 
 /* ————————————————————————————— utilities ————————————————————————————— */
 
@@ -114,6 +130,16 @@ function normalizeTitle(title) {
   return title.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Fingerprint for "this is the same story" across outlets. Returns null for
+ * headlines too short to fingerprint safely, so two unrelated three-word
+ * titles are never collapsed into one.
+ */
+function titleKey(title) {
+  const key = normalizeTitle(title).split(" ").slice(0, 9).join(" ");
+  return key.length > 12 ? key : null;
+}
+
 function canonicalUrl(url) {
   try {
     const u = new URL(url);
@@ -171,7 +197,8 @@ function parseFeed(xml) {
     const summary =
       clean(pick("description")) || clean(pick("summary")) || clean(pick("content:encoded"));
 
-    items.push({ title, link, dateRaw: clean(dateRaw), summary });
+    // feedIndex preserves the outlet's own ordering — the lead story first.
+    items.push({ title, link, dateRaw: clean(dateRaw), summary, feedIndex: items.length });
   }
   return items;
 }
@@ -237,6 +264,83 @@ function classify(title, summary) {
   return "politics";
 }
 
+/* ——————————————————————— ranking the headlines ——————————————————————— */
+
+/**
+ * How much of a "top headline" a candidate is. There is no popularity signal
+ * in an RSS feed, so this leans on the three things a feed does tell us:
+ * which newsroom ran it, how high the newsroom placed it, and how fresh it is.
+ */
+function prominence(candidate, source, today) {
+  const ageDays = Math.round((Date.parse(today) - Date.parse(candidate.date)) / 864e5);
+  const freshness = ageDays <= 0 ? 30 : ageDays === 1 ? 12 : 0;
+  return (
+    (source.weight ?? 5) * 8 +                          // outlet standing
+    Math.max(0, 40 - candidate.feedIndex * 4) +         // position in the feed
+    freshness +
+    (candidate.inTitle ? 6 : 0)                         // place named in the headline
+  );
+}
+
+/**
+ * Choose the run's three headlines. Anything already archived — by id or by
+ * headline fingerprint — is out, so the same story can't be counted twice on
+ * consecutive runs. The first pass insists on three different outlets and
+ * three different places; a second pass fills any remaining slot without
+ * those constraints, so a quiet run still returns three stories.
+ */
+function pickTopHeadlines(candidates, archive) {
+  const archivedIds = new Set(archive.map((i) => i.id));
+  const archivedKeys = new Set(archive.map((i) => titleKey(i.title)).filter(Boolean));
+  const placeDay = new Map();
+  for (const i of archive) {
+    const k = `${i.place}|${i.date}`;
+    placeDay.set(k, (placeDay.get(k) ?? 0) + 1);
+  }
+
+  const pool = candidates
+    .filter((c) => !archivedIds.has(c.id))
+    .filter((c) => {
+      const k = titleKey(c.title);
+      return !(k && archivedKeys.has(k));
+    })
+    .sort((a, b) => b.prominence - a.prominence || a.id.localeCompare(b.id));
+
+  const picked = [];
+  const takenIds = new Set();
+  const usedKeys = new Set();
+  const usedOutlets = new Set();
+  const usedPlaces = new Set();
+
+  for (const strict of [true, false]) {
+    for (const c of pool) {
+      if (picked.length >= CONFIG.topPerRun) break;
+      if (takenIds.has(c.id)) continue;
+
+      const key = titleKey(c.title);
+      if (key && usedKeys.has(key)) continue;
+
+      const pdKey = `${c.place}|${c.date}`;
+      if ((placeDay.get(pdKey) ?? 0) >= CONFIG.maxPerPlacePerDay) {
+        vlog(`skip (place/day cap) ${c.title.slice(0, 50)}`);
+        continue;
+      }
+
+      const outlet = c.sources[0]?.outlet;
+      if (strict && (usedOutlets.has(outlet) || usedPlaces.has(c.place))) continue;
+
+      picked.push(c);
+      takenIds.add(c.id);
+      if (key) usedKeys.add(key);
+      usedOutlets.add(outlet);
+      usedPlaces.add(c.place);
+      placeDay.set(pdKey, (placeDay.get(pdKey) ?? 0) + 1);
+    }
+    if (picked.length >= CONFIG.topPerRun) break;
+  }
+  return picked;
+}
+
 /* ————————————————————————————— pipeline ————————————————————————————— */
 
 async function loadExisting() {
@@ -249,15 +353,74 @@ async function loadExisting() {
   }
 }
 
+/** Assemble the file from a finished item list. */
+function buildPayload({ items, startedAt, lastHarvestAt, health, added }) {
+  // Emit only the places actually referenced.
+  const places = {};
+  for (const item of items) {
+    if (places[item.place]) continue;
+    const gid = item.place.replace(/^gaz:/, "");
+    const p = GAZETTEER.find((g) => g.id === gid);
+    if (p) places[item.place] = { name: p.name, area: p.area, lat: p.lat, lng: p.lng, wiki: p.wiki };
+  }
+  return {
+    generatedAt: startedAt.toISOString(),
+    // Distinct from generatedAt: a prune-only run rewrites the file without
+    // harvesting, and must not push the next harvest 6 hours further out.
+    lastHarvestAt,
+    retentionDays: CONFIG.retentionDays,
+    topPerRun: CONFIG.topPerRun,
+    counts: { items: items.length, places: Object.keys(places).length, addedThisRun: added },
+    sourceHealth: health,
+    places,
+    items,
+  };
+}
+
+/** Newest first, deterministic tiebreak so identical sets produce identical files. */
+const byRecency = (a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id);
+
 async function main() {
   const startedAt = new Date();
   log(`\nPINAS 2026 — news ingest  ${startedAt.toISOString()}`);
-  log(`Sources: ${SOURCES.length} · gazetteer: ${GAZETTEER.length} places\n`);
+  log(`Sources: ${SOURCES.length} · gazetteer: ${GAZETTEER.length} places`);
+  log(`Policy: top ${CONFIG.topPerRun} headlines per harvest, every ` +
+      `${CONFIG.minHoursBetweenHarvests}h+, kept ${CONFIG.retentionDays} days\n`);
 
   const todayMs = Date.now();
+  const today = new Date(todayMs).toISOString().slice(0, 10);
   const oldestAllowed = new Date(todayMs - CONFIG.retentionDays * 864e5)
     .toISOString().slice(0, 10);
   const newestAllowed = new Date(todayMs + 2 * 864e5).toISOString().slice(0, 10);
+
+  const existing = await loadExisting();
+  const priorFingerprint = JSON.stringify(existing.items ?? []);
+
+  // ————— retention: this runs every time, harvest or not —————
+  const archive = (existing.items ?? []).filter((i) => i.date >= oldestAllowed);
+  const expired = (existing.items ?? []).length - archive.length;
+  if (expired) log(`  ⌫ deleted ${expired} stor${expired === 1 ? "y" : "ies"} older than ${CONFIG.retentionDays} days`);
+
+  // ————— is a harvest due? —————
+  const lastHarvestAt = existing.lastHarvestAt ?? existing.generatedAt ?? null;
+  const hoursSince = lastHarvestAt
+    ? (todayMs - Date.parse(lastHarvestAt)) / 36e5
+    : Infinity;
+  const due = FORCE || !(hoursSince >= 0) || hoursSince >= CONFIG.minHoursBetweenHarvests;
+
+  if (!due) {
+    log(`\nLast harvest was ${hoursSince.toFixed(1)}h ago — next one is due in ` +
+        `${(CONFIG.minHoursBetweenHarvests - hoursSince).toFixed(1)}h. Pruning only.`);
+    await finish({
+      items: archive.sort(byRecency),
+      startedAt,
+      lastHarvestAt,
+      health: existing.sourceHealth ?? [],
+      added: 0,
+      priorFingerprint,
+    });
+    return;
+  }
 
   const health = [];
   const harvested = [];
@@ -293,10 +456,9 @@ async function main() {
         vlog(`skip (no place) ${raw.title.slice(0, 50)}`);
         continue;
       }
-      harvested.push({
+      const candidate = {
         id: `auto-${hashId(canonicalUrl(raw.link))}`,
         place: `gaz:${hit.place.id}`,
-        placeRef: hit.place,
         category: classify(raw.title, raw.summary),
         date,
         title: truncate(raw.title, 160),
@@ -304,8 +466,11 @@ async function main() {
         provenance: "auto",
         matchedOn: hit.alias,
         sources: [{ outlet: source.outlet, url: raw.link }],
-        weight: source.weight,
-      });
+        feedIndex: raw.feedIndex,
+        inTitle: hit.inTitle,
+      };
+      candidate.prominence = prominence(candidate, source, today);
+      harvested.push(candidate);
       kept++;
     }
     health.push({ outlet: source.outlet, url: source.url, ok: true, items: parsed.length, placed: kept });
@@ -314,88 +479,56 @@ async function main() {
 
   const okSources = health.filter((h) => h.ok).length;
   if (okSources === 0) {
-    log("\n⚠ Every source failed. Writing nothing so existing data is preserved.");
+    log("\n⚠ Every source failed. Adding nothing, and leaving the harvest clock alone so the next run retries.");
+    await finish({
+      items: archive.sort(byRecency),
+      startedAt,
+      lastHarvestAt,
+      health,
+      added: 0,
+      priorFingerprint,
+    });
     return;
   }
 
-  // ————— merge with what we already have —————
-  const existing = await loadExisting();
-  const byId = new Map();
-  for (const item of existing.items) byId.set(item.id, item);
+  // ————— keep only the run's top 3 —————
+  const picked = pickTopHeadlines(harvested, archive);
 
-  let added = 0;
-  for (const item of harvested) {
-    const prior = byId.get(item.id);
-    if (!prior) {
-      byId.set(item.id, item);
-      added++;
-    } else if ((item.weight ?? 0) > (prior.weight ?? 0)) {
-      byId.set(item.id, { ...prior, ...item }); // higher-weight outlet wins attribution
-    }
+  const items = [...archive, ...picked]
+    .map(({ feedIndex, inTitle, prominence: _p, ...rest }) => rest) // strip build-only fields
+    .sort(byRecency)
+    .slice(0, CONFIG.maxItems);
+
+  log(`\n  ${harvested.length} placed candidates → keeping the top ${picked.length}:`);
+  for (const p of picked) {
+    log(`   • [${p.date}] ${p.sources[0].outlet} · ${p.matchedOn}: ${p.title.slice(0, 70)}`);
   }
+  log(`\n  archive now ${items.length} stories (cap ${CONFIG.maxItems}, ${CONFIG.retentionDays}-day window)`);
+  log(`  sources healthy: ${okSources}/${SOURCES.length}`);
 
-  // Drop near-duplicate headlines (same story syndicated across outlets).
-  const seenTitles = new Map();
-  const deduped = [];
-  for (const item of [...byId.values()].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0))) {
-    const key = normalizeTitle(item.title).split(" ").slice(0, 9).join(" ");
-    if (key.length > 12 && seenTitles.has(key)) continue;
-    seenTitles.set(key, item.id);
-    deduped.push(item);
-  }
-
-  const ranked = deduped
-    .filter((i) => i.date >= oldestAllowed)
-    .sort((a, b) =>
-      b.date.localeCompare(a.date) ||
-      (b.weight ?? 0) - (a.weight ?? 0) ||
-      a.id.localeCompare(b.id)
-    );
-
-  const perPlaceDay = new Map();
-  const capped = [];
-  for (const item of ranked) {
-    const key = `${item.place}|${item.date}`;
-    const seen = perPlaceDay.get(key) ?? 0;
-    if (seen >= CONFIG.maxPerPlacePerDay) continue;
-    perPlaceDay.set(key, seen + 1);
-    capped.push(item);
-  }
-
-  const items = capped
-    .slice(0, CONFIG.maxItems)
-    .map(({ placeRef, weight, ...rest }) => rest); // strip build-only fields
-
-  // Emit only the places actually referenced.
-  const places = {};
-  for (const item of items) {
-    if (places[item.place]) continue;
-    const gid = item.place.replace(/^gaz:/, "");
-    const p = GAZETTEER.find((g) => g.id === gid);
-    if (p) places[item.place] = { name: p.name, area: p.area, lat: p.lat, lng: p.lng, wiki: p.wiki };
-  }
-
-  const payload = {
-    generatedAt: startedAt.toISOString(),
-    retentionDays: CONFIG.retentionDays,
-    counts: { items: items.length, places: Object.keys(places).length, addedThisRun: added },
-    sourceHealth: health,
-    places,
+  await finish({
     items,
-  };
+    startedAt,
+    lastHarvestAt: startedAt.toISOString(),
+    health,
+    added: picked.length,
+    priorFingerprint,
+  });
+}
+
+/** Build the payload and write it, unless nothing changed or this is a dry run. */
+async function finish({ items, startedAt, lastHarvestAt, health, added, priorFingerprint }) {
+  const payload = buildPayload({ items, startedAt, lastHarvestAt, health, added });
 
   // Only rewrite when the story set actually changed, so the scheduled job
-  // does not create an empty commit every few hours.
-  const fingerprint = JSON.stringify(items);
-  const priorFingerprint = JSON.stringify(existing.items ?? []);
-  const changed = fingerprint !== priorFingerprint;
-
-  log(`\n  ${items.length} stories across ${Object.keys(places).length} places (${added} new this run)`);
-  log(`  sources healthy: ${okSources}/${SOURCES.length}`);
+  // does not churn the deploy artifact every few hours for nothing.
+  const changed = JSON.stringify(items) !== priorFingerprint;
 
   if (DRY_RUN) {
     log("\n--dry-run: no files written.");
-    log(items.slice(0, 8).map((i) => `   • [${i.date}] ${places[i.place]?.name}: ${i.title.slice(0, 70)}`).join("\n"));
+    log(items.slice(0, 8)
+      .map((i) => `   • [${i.date}] ${payload.places[i.place]?.name}: ${i.title.slice(0, 70)}`)
+      .join("\n"));
     return;
   }
   if (!changed) {

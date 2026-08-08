@@ -145,7 +145,18 @@ The workflow runs **every 6 hours**, defined in
 GitHub cron is **always UTC**. The Philippines is UTC+8, so those four runs land
 at roughly **07:17, 13:17, 19:17, and 01:17 PHT**.
 
-To change the frequency, edit that line. Some examples:
+Each of those runs keeps only the **top 3 headlines** it finds — so **12 stories a
+day, 84 in a week**, which is also roughly what the map holds at any moment once
+the 7-day window is full.
+
+The workflow also runs on every push to `main`, but that only redeploys the site:
+the script refuses to harvest twice inside 6 hours, so pushing does not add extra
+stories. If you deliberately want three more, run the workflow manually and tick
+**force_fetch**.
+
+To change the frequency, edit that line — and remember the script's own 6-hour
+gate (`minHoursBetweenHarvests`) has to come down with it, or the extra runs will
+prune and deploy without harvesting anything. Some examples:
 
 | You want | Use |
 | --- | --- |
@@ -185,9 +196,10 @@ match means the story is dropped rather than placed somewhere plausible.
 ones show `✔ Verified`. Readers always know which is which, and the About panel
 explains the difference.
 
-**Fail-safe.** If every source is unreachable, the script writes nothing at all,
-so a network blip can never blank your map. If the story set hasn't changed, it
-skips the commit rather than filling your history with empty updates.
+**Fail-safe.** If every source is unreachable, the script adds nothing and leaves
+the harvest clock untouched, so a network blip can never blank your map — the next
+run just tries again. If the story set hasn't changed, the file isn't rewritten at
+all.
 
 ### Why some stories are skipped
 
@@ -241,10 +253,19 @@ The knobs live at the top of `scripts/fetch-news.mjs`:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `retentionDays` | 7 | How long stories stay on the map before rolling off |
-| `maxItems` | 600 | Hard cap on stored stories (~50/day × 7 days, with headroom) |
+| `retentionDays` | 7 | Stories older than this are deleted on every run |
+| `topPerRun` | 3 | How many headlines a harvest keeps — the main volume dial |
+| `minHoursBetweenHarvests` | 5.5 | Refuses to harvest again inside this gap |
+| `maxItems` | 100 | Hard cap on stored stories (3 × 4 runs × 7 days = 84, plus headroom) |
 | `maxPerPlacePerDay` | 3 | Stops one busy city burying everywhere else |
-| `perSourceLimit` | 25 | Newest N items read per feed per run |
+| `perSourceLimit` | 10 | Top N items read per feed — feed order is the outlet's own ranking |
+
+**How the top 3 are chosen.** RSS carries no popularity signal, so prominence is
+scored from what a feed does tell you: the outlet's `weight`, how high the story
+sits in the feed, and how fresh it is. The three picks are then spread across
+three different outlets and three different places where possible. Anything
+already in the archive — same URL, or the same headline from another outlet — is
+never picked twice.
 
 **Keep `retentionDays` and the UI in sync.** The app enforces its own cutoff via
 `MAX_AGE_DAYS` in `js/app.js` (also 7). If you widen one, widen the other —
@@ -257,8 +278,8 @@ interface promises a window the data doesn't cover.
 Each run of the workflow:
 
 1. restores the previous archive from the **Actions cache**,
-2. merges in whatever the feeds are carrying now,
-3. drops anything older than 7 days,
+2. deletes anything older than 7 days,
+3. adds the top 3 headlines from the feeds (if 6 hours have passed),
 4. ships the result inside the Pages artifact, and
 5. saves the updated archive back to the cache for next time.
 

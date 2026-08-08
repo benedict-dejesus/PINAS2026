@@ -11,6 +11,11 @@
 #   2. RSS feeds only expose the last few days, and the archive is built by
 #      merging each run into the previous result. With nothing committed, that
 #      history lives in the Actions cache instead.
+#
+# Volume: each harvest keeps the top 3 headlines only, and the script refuses
+# to harvest twice inside 6 hours — so the push and workflow_dispatch triggers
+# below still deploy, but they don't inflate the archive past 12 stories a day.
+# Stories older than 7 days are deleted on every run.
 name: Update news & deploy
 
 on:
@@ -24,6 +29,10 @@ on:
     inputs:
       dry_run:
         description: "Fetch and report only — do not deploy"
+        type: boolean
+        default: false
+      force_fetch:
+        description: "Harvest 3 more headlines even if the last run was under 6h ago"
         type: boolean
         default: false
 
@@ -66,11 +75,12 @@ jobs:
 
       - name: Fetch news from allowlisted sources
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            node scripts/fetch-news.mjs --dry-run | tee ingest.log
-          else
-            node scripts/fetch-news.mjs | tee ingest.log
-          fi
+          # Plain `if`, not `[ … ] && …`: the default shell runs with `set -e`,
+          # so a false one-liner test would abort the step.
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args="$args --dry-run"; fi
+          if [ "${{ inputs.force_fetch }}" = "true" ]; then args="$args --force"; fi
+          node scripts/fetch-news.mjs $args | tee ingest.log
 
       - name: Publish run summary
         if: always()

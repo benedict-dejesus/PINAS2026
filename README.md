@@ -66,6 +66,10 @@ article. A story is only placed on the map when it clearly names a Philippine
 location; if it can't be located, it's dropped rather than guessed. Hand-verified
 stories always take precedence over an automated copy of the same article.
 
+The automated feed is deliberately narrow: the **top 3 headlines every 6 hours**
+— 12 a day, 84 a week — and anything older than 7 days is deleted. A short list of
+genuine headlines is easier to trust than an exhaustive one.
+
 ---
 
 ## Adding your own story
